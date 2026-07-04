@@ -3,9 +3,8 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 
-
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
@@ -1647,6 +1646,30 @@ app.post("/api/bot/estado", (req, res) => {
   res.json({ mensaje: "ok" });
 });
 
+// Eventos activos para el BOT (2 niveles: evento -> funciones)
+app.get("/api/bot/eventos", (req, res) => {
+  const db = leerDB();
+  const salida = (db.eventos || [])
+    .filter(ev => ev.activo !== false)
+    .map(ev => ({
+      id: ev.id,
+      nombre: ev.nombre,
+      lugar: ev.lugar || "",
+      funciones: (ev.funciones || [])
+        .filter(fn => (fn.tipoRegistro || "funcion") === "funcion" && fn.activa !== false)
+        .map(fn => ({
+          id: fn.id,
+          fecha: fn.fecha || "",
+          hora: fn.hora || "",
+          precio: fn.precio || (fn.categorias && fn.categorias.general && fn.categorias.general.precio) || 0,
+          boletosDisponibles: (fn.boletosDisponibles != null ? fn.boletosDisponibles
+            : (fn.categorias && fn.categorias.general && fn.categorias.general.boletos)) || 0
+        }))
+    }))
+    .filter(ev => ev.funciones.length > 0);
+  res.json(salida);
+});
+
 
 /* ============================================================
    RESERVAS (migración: viven en Kairen, no en Google Sheets)
@@ -1696,7 +1719,7 @@ function ocupadosDeFuncion(db, nombre){
 app.post("/api/reservas", (req, res) => {
   const db = leerDB();
   const reservas = obtenerReservas(db);
-  const { nombre, funcion, horario, boletos, total, clienteJid, telefono, codigoPromo } = req.body || {};
+  const { nombre, funcion, horario, boletos, total, clienteJid, telefono, codigoPromo, eventoId, funcionId, evento, fecha, hora } = req.body || {};
 
   if(!funcion || !boletos){
     return res.status(400).json({ mensaje: "Faltan datos (funcion, boletos)" });
@@ -1706,7 +1729,12 @@ app.post("/api/reservas", (req, res) => {
   const reserva = {
     folio,
     nombre: String(nombre || "").trim(),
+    evento: String(evento || "").trim(),
+    eventoId: eventoId != null ? eventoId : null,
+    funcionId: funcionId != null ? funcionId : null,
     funcion: String(funcion).trim(),
+    fecha: String(fecha || "").trim(),
+    hora: String(hora || "").trim(),
     horario: String(horario || "").trim(),
     boletos: Number(boletos) || 0,
     total: Number(total) || 0,
@@ -1737,13 +1765,50 @@ app.get("/api/reservas/cliente/:jid", (req, res) => {
   res.json(obtenerReservas(db).filter(r => r.clienteJid === jid));
 });
 
+function funcionReal(db, eventoId, funcionId){
+  const ev = (db.eventos || []).find(e => String(e.id) === String(eventoId));
+  if(!ev){ return null; }
+  const fn = (ev.funciones || []).find(f => String(f.id) === String(funcionId));
+  return fn ? { ev, fn } : null;
+}
+
+function ocupadosReserva(db, eventoId, funcionId){
+  return obtenerReservas(db)
+    .filter(r =>
+      String(r.eventoId) === String(eventoId) &&
+      String(r.funcionId) === String(funcionId) &&
+      STATUS_OCUPAN_CUPO.includes(String(r.status || "").toLowerCase()))
+    .reduce((a, r) => a + (parseInt(r.boletos || 0, 10) || 0), 0);
+}
+
 // Cupo de una función
 app.get("/api/reservas/cupo", (req, res) => {
   const db = leerDB();
-  const funcion = req.query.funcion || "";
-  const capacidad = capacidadDeFuncion(db, funcion);
-  const ocupados = ocupadosDeFuncion(db, funcion);
+  const { eventoId, funcionId, funcion } = req.query;
+
+  if(eventoId && funcionId){
+    const fr = funcionReal(db, eventoId, funcionId);
+    const capacidad = fr ? (fr.fn.boletosDisponibles != null ? fr.fn.boletosDisponibles : 300) : 300;
+    const ocupados = ocupadosReserva(db, eventoId, funcionId);
+    return res.json({ capacidad, ocupados, disponibles: capacidad - ocupados });
+  }
+
+  const capacidad = capacidadDeFuncion(db, funcion || "");
+  const ocupados = ocupadosDeFuncion(db, funcion || "");
   res.json({ capacidad, ocupados, disponibles: capacidad - ocupados });
+});
+
+// Actualizar status de una reserva (por folio)
+app.post("/api/reservas/:folio/status", (req, res) => {
+  const db = leerDB();
+  const reservas = obtenerReservas(db);
+  const r = reservas.find(x =>
+    String(x.folio).toUpperCase() === String(req.params.folio).toUpperCase()
+  );
+  if(!r){ return res.status(404).json({ mensaje: "Reserva no encontrada" }); }
+  r.status = String(req.body.status || r.status);
+  guardarDB(db);
+  res.json({ mensaje: "Status actualizado", reserva: r });
 });
 
 
