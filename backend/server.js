@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
@@ -1400,6 +1400,7 @@ function obtenerBotConfig(db){
     if(c.mensajes[k] === undefined){ c.mensajes[k] = BOT_CONFIG_DEFAULT.mensajes[k]; }
   }
   if(!Array.isArray(c.funciones)){ c.funciones = BOT_CONFIG_DEFAULT.funciones.map(f => ({ ...f })); }
+  if(c.logo === undefined){ c.logo = ""; }
   return c;
 }
 
@@ -1613,6 +1614,7 @@ app.put("/api/bot/config", (req, res) => {
   if(mensajes && typeof mensajes === "object"){
     for(const k in mensajes){ cfg.mensajes[k] = String(mensajes[k]); }
   }
+  if(req.body.logo !== undefined){ cfg.logo = String(req.body.logo || ""); }
   if(Array.isArray(req.body.funciones)){
     cfg.funciones = req.body.funciones.map(f => ({
       nombre: String(f.nombre || "").trim(),
@@ -1650,7 +1652,7 @@ app.post("/api/bot/estado", (req, res) => {
 app.get("/api/bot/eventos", (req, res) => {
   const db = leerDB();
   const salida = (db.eventos || [])
-    .filter(ev => ev.activo !== false)
+    .filter(ev => ev.activo !== false && ev.enBot !== false)
     .map(ev => ({
       id: ev.id,
       nombre: ev.nombre,
@@ -1668,6 +1670,31 @@ app.get("/api/bot/eventos", (req, res) => {
     }))
     .filter(ev => ev.funciones.length > 0);
   res.json(salida);
+});
+
+// Lista de eventos para el PANEL Bot (con switch de visibilidad)
+app.get("/api/bot/eventos-config", (req, res) => {
+  const db = leerDB();
+  const out = (db.eventos || []).map(ev => ({
+    id: ev.id,
+    nombre: ev.nombre,
+    lugar: ev.lugar || "",
+    activo: ev.activo !== false,
+    enBot: ev.enBot !== false,
+    numFunciones: (ev.funciones || [])
+      .filter(fn => (fn.tipoRegistro || "funcion") === "funcion" && fn.activa !== false).length
+  }));
+  res.json(out);
+});
+
+// Prender/apagar un evento en el bot
+app.post("/api/bot/eventos/:id/visible", (req, res) => {
+  const db = leerDB();
+  const ev = (db.eventos || []).find(e => String(e.id) === String(req.params.id));
+  if(!ev){ return res.status(404).json({ mensaje: "Evento no encontrado" }); }
+  ev.enBot = req.body.visible !== false;
+  guardarDB(db);
+  res.json({ mensaje: "ok", enBot: ev.enBot });
 });
 
 
@@ -1809,6 +1836,79 @@ app.post("/api/reservas/:folio/status", (req, res) => {
   r.status = String(req.body.status || r.status);
   guardarDB(db);
   res.json({ mensaje: "Status actualizado", reserva: r });
+});
+
+// Encola el boleto (con QR) para que el bot lo envíe por WhatsApp
+function encolarBoleto(db, reserva){
+  if(!reserva.telefono){ return; }
+  if(!db.outbox){ db.outbox = []; }
+  db.outbox.push({
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    tipo: "boleto",
+    telefono: reserva.telefono,
+    comprador: reserva.nombre || "",
+    folio: reserva.folio,
+    boleto: {
+      folio: reserva.folio,
+      evento: reserva.evento || reserva.funcion || "",
+      fecha: reserva.fecha || "",
+      hora: reserva.hora || reserva.horario || "",
+      nombre: reserva.nombre || "",
+      boletos: Number(reserva.boletos) || 1
+    },
+    estado: "pendiente",
+    intentos: 0,
+    creado: new Date().toISOString(),
+    enviado: null
+  });
+}
+
+// Confirmar pago -> status Confirmada + encola el boleto con QR
+app.post("/api/reservas/:folio/confirmar", (req, res) => {
+  const db = leerDB();
+  const reservas = obtenerReservas(db);
+  const r = reservas.find(x =>
+    String(x.folio).toUpperCase() === String(req.params.folio).toUpperCase()
+  );
+  if(!r){ return res.status(404).json({ mensaje: "Reserva no encontrada" }); }
+
+  r.status = "Confirmada";
+  r.metodoPago = String(req.body.metodoPago || "transferencia");
+  r.confirmado = new Date().toISOString();
+
+  encolarBoleto(db, r);
+  guardarDB(db);
+  res.json({ mensaje: "Reserva confirmada, boleto en camino", reserva: r });
+});
+
+// Cancelar reserva
+app.post("/api/reservas/:folio/cancelar", (req, res) => {
+  const db = leerDB();
+  const reservas = obtenerReservas(db);
+  const r = reservas.find(x =>
+    String(x.folio).toUpperCase() === String(req.params.folio).toUpperCase()
+  );
+  if(!r){ return res.status(404).json({ mensaje: "Reserva no encontrada" }); }
+
+  r.status = "Cancelada";
+  r.cancelado = new Date().toISOString();
+
+  if(r.telefono){
+    if(!db.outbox){ db.outbox = []; }
+    db.outbox.push({
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      telefono: r.telefono,
+      comprador: r.nombre || "",
+      texto: `Hola ${r.nombre || ""} 👋\nTu reservación *${r.folio}* fue cancelada.\nSi crees que es un error, escríbenos.`,
+      estado: "pendiente",
+      intentos: 0,
+      creado: new Date().toISOString(),
+      enviado: null
+    });
+  }
+
+  guardarDB(db);
+  res.json({ mensaje: "Reserva cancelada", reserva: r });
 });
 
 

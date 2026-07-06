@@ -57,6 +57,7 @@
 
         <div class="sidebar-section">Operación</div>
         <div class="menu-item" id="menuVentas" onclick="mostrarSeccion('ventas')">💰 Ventas</div>
+        <div class="menu-item" id="menuReservas" onclick="mostrarSeccion('reservas')">📋 Reservas</div>
         <div class="menu-item" id="menuBot" onclick="mostrarSeccion('bot')">🤖 Bot</div>
     </aside>
 
@@ -548,6 +549,26 @@
                 <div id="ventasFunciones" class="ventas-funciones"></div>
             </div>
         </section>
+        <section id="seccionReservas" class="app-section oculto">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>📋 Reservas del bot</h2>
+                        <p class="panel-subtitle">Confirma el pago para enviar el boleto con QR, o cancela.</p>
+                    </div>
+                    <button class="btn-secundario" onclick="renderPanelReservas()">🔄 Actualizar</button>
+                </div>
+
+                <div class="reservas-filtros">
+                    <button class="reservas-filtro active" data-filtro="todas" onclick="filtrarReservas('todas', this)">Todas</button>
+                    <button class="reservas-filtro" data-filtro="pendientes" onclick="filtrarReservas('pendientes', this)">Por confirmar</button>
+                    <button class="reservas-filtro" data-filtro="confirmadas" onclick="filtrarReservas('confirmadas', this)">Confirmadas</button>
+                    <button class="reservas-filtro" data-filtro="canceladas" onclick="filtrarReservas('canceladas', this)">Canceladas</button>
+                </div>
+
+                <div id="reservasLista" class="reservas-lista"></div>
+            </div>
+        </section>
         <section id="seccionBot" class="app-section oculto">
             <div class="panel">
                 <div class="panel-header">
@@ -574,15 +595,26 @@
                 </div>
 
                 <div class="bot-bloque">
-                    <h3 class="bot-bloque-titulo">🎭 Funciones</h3>
-                    <p class="bot-ayuda">Agrega o quita las funciones que el bot ofrece. "Hoja" es la pestaña de Google Sheets donde se guardan (opcional).</p>
-                    <div id="botFunciones" class="bot-funciones"></div>
-                    <button class="btn-secundario btn-mini" onclick="agregarFuncionBot()">➕ Agregar función</button>
+                    <h3 class="bot-bloque-titulo">🖼️ Logo del boleto</h3>
+                    <p class="bot-ayuda">Aparece en el PDF del boleto. Puedes cambiarlo cuando quieras.</p>
+                    <div class="bot-logo-fila">
+                        <div id="botLogoPreview" class="bot-logo-preview">Sin logo</div>
+                        <div>
+                            <input type="file" id="botLogoInput" accept="image/*" onchange="subirLogoBot(this)">
+                            <button class="btn-secundario btn-mini" onclick="quitarLogoBot()">Quitar logo</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bot-bloque">
+                    <h3 class="bot-bloque-titulo">🎭 Eventos en el bot</h3>
+                    <p class="bot-ayuda">Prende o apaga qué eventos ofrece el bot por WhatsApp. Salen de tu cartelera real (sección Eventos). Apagar aquí NO borra el evento, solo lo oculta del bot.</p>
+                    <div id="botEventos" class="bot-eventos"></div>
                 </div>
 
                 <div class="bot-bloque">
                     <h3 class="bot-bloque-titulo">💬 Mensajes</h3>
-                    <p class="bot-ayuda">Usa variables entre llaves. Ej: <code>{nombre}</code>, <code>{evento}</code>, <code>{fecha}</code>, <code>{folios}</code>, <code>{precio_normal}</code>.</p>
+                    <p class="bot-ayuda">Usa variables entre llaves. Ej: <code>{lista_eventos}</code>, <code>{nombre}</code>, <code>{evento}</code>, <code>{fecha}</code>, <code>{folios}</code>, <code>{precio_normal}</code>.</p>
                     <div id="botMensajes" class="bot-mensajes"></div>
                 </div>
 
@@ -1696,6 +1728,7 @@
 <script src="js/eventos.js"></script>
 <script src="js/caja.js"></script>
 <script src="js/bot.js"></script>
+<script src="js/reservas.js"></script>
 <script src="js/modales.js"></script>
 <script src="js/app.js"></script>
 

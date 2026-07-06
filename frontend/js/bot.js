@@ -1,11 +1,11 @@
 /* ============================================================
    PANEL DEL BOT (sección "🤖 Bot")
-   - Muestra estado de conexión + QR (reportado por el bot).
-   - Edita precios y mensajes (los lee el bot desde Kairen).
+   - Estado de conexión + QR (reportado por el bot).
+   - Precios y mensajes (los lee el bot desde Kairen).
+   - Eventos reales con switch de "mostrar en el bot".
 ============================================================ */
 
 let BOT_CONFIG_KEYS = [];
-let BOT_FUNCIONES = [];
 
 const BOT_MSG_LABELS = {
     menu: "Menú / saludo inicial",
@@ -13,7 +13,62 @@ const BOT_MSG_LABELS = {
 };
 
 async function renderPanelBot(){
-    await Promise.all([cargarEstadoBot(), cargarConfigBot()]);
+    await Promise.all([cargarEstadoBot(), cargarConfigBot(), renderEventosBot()]);
+}
+
+/* ---- Logo del boleto ---- */
+
+let BOT_LOGO_URL = "";
+
+function pintarLogoPreview(){
+    const prev = document.getElementById("botLogoPreview");
+    if(!prev){ return; }
+    if(BOT_LOGO_URL){
+        prev.innerHTML = `<img src="${BOT_LOGO_URL}" alt="logo">`;
+    }else{
+        prev.textContent = "Sin logo";
+    }
+}
+
+async function subirLogoBot(input){
+    const file = input.files && input.files[0];
+    if(!file){ return; }
+    const reader = new FileReader();
+    reader.onload = async () => {
+        try{
+            const r = await fetch(`${API_URL}/api/upload`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ dataUrl: reader.result, nombre: file.name })
+            });
+            const data = await r.json();
+            if(!r.ok || !data.url){ throw new Error("upload falló"); }
+            BOT_LOGO_URL = data.url;
+            pintarLogoPreview();
+            await guardarLogoBot();
+            mostrarToast("Logo actualizado ✅", "success");
+        }catch(e){
+            mostrarToast("No se pudo subir el logo", "error");
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+async function quitarLogoBot(){
+    BOT_LOGO_URL = "";
+    pintarLogoPreview();
+    await guardarLogoBot();
+    mostrarToast("Logo quitado", "success");
+}
+
+async function guardarLogoBot(){
+    try{
+        await fetch(`${API_URL}/api/bot/config`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ logo: BOT_LOGO_URL })
+        });
+    }catch(e){ /* se reintenta al guardar config */ }
 }
 
 async function cargarEstadoBot(){
@@ -71,8 +126,8 @@ async function cargarConfigBot(){
     if(pn){ pn.value = cfg.precios?.normal ?? ""; }
     if(pp){ pp.value = cfg.precios?.preventa ?? ""; }
 
-    BOT_FUNCIONES = Array.isArray(cfg.funciones) ? cfg.funciones.map(f => ({ ...f })) : [];
-    renderFuncionesBot();
+    BOT_LOGO_URL = cfg.logo || "";
+    pintarLogoPreview();
 
     const cont = document.getElementById("botMensajes");
     if(!cont){ return; }
@@ -108,13 +163,11 @@ async function guardarConfigBot(){
         preventa: Number(document.getElementById("botPrecioPreventa")?.value || 0)
     };
 
-    leerFuncionesDOM();
-
     try{
         const r = await fetch(`${API_URL}/api/bot/config`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ precios, mensajes, funciones: BOT_FUNCIONES })
+            body: JSON.stringify({ precios, mensajes, logo: BOT_LOGO_URL })
         });
         if(!r.ok){ throw new Error("PUT falló"); }
         mostrarToast("Configuración del bot guardada ✅", "success");
@@ -123,54 +176,61 @@ async function guardarConfigBot(){
     }
 }
 
-/* ---- Funciones editables ---- */
+/* ---- Eventos reales con switch de visibilidad ---- */
 
-function renderFuncionesBot(){
-    const cont = document.getElementById("botFunciones");
+async function renderEventosBot(){
+    const cont = document.getElementById("botEventos");
     if(!cont){ return; }
 
-    if(!BOT_FUNCIONES.length){
-        cont.innerHTML = `<p class="caja-vacio">Sin funciones. Agrega una con el botón de abajo.</p>`;
+    let eventos = [];
+    try{
+        const r = await fetch(`${API_URL}/api/bot/eventos-config`);
+        eventos = await r.json();
+    }catch(e){
+        cont.innerHTML = `<p class="caja-vacio">No se pudieron cargar los eventos.</p>`;
         return;
     }
 
-    cont.innerHTML = BOT_FUNCIONES.map((f, i) => `
-        <div class="bot-func-fila">
-            <div class="bot-func-grid">
-                <input data-i="${i}" data-campo="nombre" placeholder="Nombre (ej. Domingo 28 de Junio)" value="${escaparTexto(f.nombre || "")}">
-                <input data-i="${i}" data-campo="horario" placeholder="Horario (ej. 19:00 hrs)" value="${escaparTexto(f.horario || "")}">
-                <input data-i="${i}" data-campo="capacidad" type="number" min="0" placeholder="Cupo" value="${f.capacidad ?? ""}">
-                <input data-i="${i}" data-campo="hoja" placeholder="Hoja (opcional)" value="${escaparTexto(f.hoja || "")}">
+    if(!eventos.length){
+        cont.innerHTML = `<p class="caja-vacio">No hay eventos. Créalos en la sección Eventos.</p>`;
+        return;
+    }
+
+    cont.innerHTML = eventos.map(ev => {
+        const sinFunciones = ev.numFunciones === 0;
+        const inactivo = !ev.activo;
+        let nota = "";
+        if(inactivo){ nota = `<span class="bot-evento-nota">⚠️ Evento pausado</span>`; }
+        else if(sinFunciones){ nota = `<span class="bot-evento-nota">⚠️ Sin funciones activas</span>`; }
+        else { nota = `<span class="bot-evento-sub">${ev.numFunciones} función(es)</span>`; }
+
+        return `
+            <div class="bot-evento-fila">
+                <div class="bot-evento-info">
+                    <strong>${escaparTexto(ev.nombre)}</strong>
+                    <div>${escaparTexto(ev.lugar || "")} ${nota}</div>
+                </div>
+                <label class="bot-switch">
+                    <input type="checkbox" ${ev.enBot ? "checked" : ""}
+                        onchange="toggleEventoBot('${ev.id}', this.checked)">
+                    <span class="bot-switch-track"></span>
+                </label>
             </div>
-            <label class="bot-func-activa">
-                <input type="checkbox" data-i="${i}" data-campo="activa" ${f.activa !== false ? "checked" : ""}> Activa
-            </label>
-            <button class="bot-func-del" onclick="eliminarFuncionBot(${i})" title="Quitar">🗑️</button>
-        </div>
-    `).join("");
+        `;
+    }).join("");
 }
 
-function leerFuncionesDOM(){
-    const cont = document.getElementById("botFunciones");
-    if(!cont){ return; }
-    cont.querySelectorAll("input[data-campo]").forEach(inp => {
-        const i = Number(inp.dataset.i);
-        const campo = inp.dataset.campo;
-        if(!BOT_FUNCIONES[i]){ return; }
-        if(campo === "activa"){ BOT_FUNCIONES[i].activa = inp.checked; }
-        else if(campo === "capacidad"){ BOT_FUNCIONES[i].capacidad = Number(inp.value) || 0; }
-        else { BOT_FUNCIONES[i][campo] = inp.value; }
-    });
-}
-
-function agregarFuncionBot(){
-    leerFuncionesDOM();
-    BOT_FUNCIONES.push({ nombre: "", horario: "19:00 hrs", capacidad: 300, hoja: "", activa: true });
-    renderFuncionesBot();
-}
-
-function eliminarFuncionBot(i){
-    leerFuncionesDOM();
-    BOT_FUNCIONES.splice(i, 1);
-    renderFuncionesBot();
+async function toggleEventoBot(id, visible){
+    try{
+        const r = await fetch(`${API_URL}/api/bot/eventos/${encodeURIComponent(id)}/visible`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ visible })
+        });
+        if(!r.ok){ throw new Error("no ok"); }
+        mostrarToast(visible ? "Evento visible en el bot ✅" : "Evento oculto del bot 🚫", "success");
+    }catch(e){
+        mostrarToast("No se pudo cambiar", "error");
+        renderEventosBot();
+    }
 }

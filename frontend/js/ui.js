@@ -73,6 +73,7 @@ const SECCIONES_APP = [
     "Eventos",
     "Funciones",
     "Ventas",
+    "Reservas",
     "Bot",
     "Configuracion",
     "NuevoRegistro"
@@ -85,6 +86,7 @@ const MENUS_APP = [
     "Eventos",
     "Funciones",
     "Ventas",
+    "Reservas",
     "Bot",
     "Configuracion"
 ];
@@ -96,6 +98,7 @@ const MAPA_NAVEGACION = {
     eventos:       { seccion: "Eventos",       menu: "Eventos" },
     funciones:     { seccion: "Funciones",     menu: "Funciones" },
     ventas:        { seccion: "Ventas",        menu: "Ventas" },
+    reservas:      { seccion: "Reservas",      menu: "Reservas" },
     bot:           { seccion: "Bot",           menu: "Bot" },
     configuracion: { seccion: "Configuracion", menu: "Configuracion" },
     // nuevoRegistro no tiene menu propio -> resalta Agenda.
@@ -141,6 +144,11 @@ function mostrarSeccion(seccion){
     // Caja: panel global de ventas bajo demanda.
     if(destino.seccion === "Ventas" && typeof renderPanelVentas === "function"){
         renderPanelVentas();
+    }
+
+    // Reservas: panel de reservas del bot bajo demanda.
+    if(destino.seccion === "Reservas" && typeof renderPanelReservas === "function"){
+        renderPanelReservas();
     }
 
     // Bot: panel de configuración/estado bajo demanda.
