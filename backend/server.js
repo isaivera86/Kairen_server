@@ -1973,6 +1973,30 @@ app.post("/api/reservas/:folio/cancelar", (req, res) => {
   res.json({ mensaje: "Reserva cancelada", reserva: r });
 });
 
+// Eliminar UNA reserva (borrado real)
+app.delete("/api/reservas/:folio", (req, res) => {
+  const db = leerDB();
+  if(!Array.isArray(db.reservas)){ db.reservas = []; }
+  const antes = db.reservas.length;
+  db.reservas = db.reservas.filter(x =>
+    String(x.folio).toUpperCase() !== String(req.params.folio).toUpperCase()
+  );
+  if(db.reservas.length === antes){
+    return res.status(404).json({ mensaje: "Reserva no encontrada" });
+  }
+  guardarDB(db);
+  res.json({ mensaje: "Reserva eliminada" });
+});
+
+// Vaciar TODAS las reservas (para limpiar pruebas)
+app.delete("/api/reservas", (req, res) => {
+  const db = leerDB();
+  const cuantas = Array.isArray(db.reservas) ? db.reservas.length : 0;
+  db.reservas = [];
+  guardarDB(db);
+  res.json({ mensaje: "Reservas vaciadas", eliminadas: cuantas });
+});
+
 
 /* ============================================================
    ALPHA v1.14: CATÁLOGO DE TIPOS DE REGISTRO (editable)

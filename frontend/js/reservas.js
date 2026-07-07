@@ -68,6 +68,7 @@ function pintarReservas(){
         }else if(conf){
             acciones = `<button class="btn-secundario btn-mini" onclick="reenviarBoleto('${escaparTexto(r.folio)}')">📨 Reenviar boleto</button>`;
         }
+        acciones += `<button class="btn-peligro btn-mini" onclick="eliminarReserva('${escaparTexto(r.folio)}')">🗑️ Eliminar</button>`;
 
         return `
             <div class="reserva-card">
@@ -115,6 +116,33 @@ async function cancelarReserva(folio){
         renderPanelReservas();
     }catch(e){
         mostrarToast("No se pudo cancelar", "error");
+    }
+}
+
+async function eliminarReserva(folio){
+    const ok = await confirmarAccion(`¿Eliminar la reserva ${folio}? Esto la borra por completo.`, "Sí, eliminar", "No");
+    if(!ok){ return; }
+    try{
+        const r = await fetch(`${API_URL}/api/reservas/${encodeURIComponent(folio)}`, { method: "DELETE" });
+        if(!r.ok){ throw new Error("no ok"); }
+        mostrarToast(`Reserva ${folio} eliminada 🗑️`, "success");
+        renderPanelReservas();
+    }catch(e){
+        mostrarToast("No se pudo eliminar", "error");
+    }
+}
+
+async function vaciarReservas(){
+    const ok = await confirmarAccion("¿Vaciar TODAS las reservas? Esto no se puede deshacer.", "Sí, vaciar todo", "No");
+    if(!ok){ return; }
+    try{
+        const r = await fetch(`${API_URL}/api/reservas`, { method: "DELETE" });
+        if(!r.ok){ throw new Error("no ok"); }
+        const data = await r.json();
+        mostrarToast(`Se vaciaron ${data.eliminadas || 0} reservas 🧹`, "success");
+        renderPanelReservas();
+    }catch(e){
+        mostrarToast("No se pudo vaciar", "error");
     }
 }
 
