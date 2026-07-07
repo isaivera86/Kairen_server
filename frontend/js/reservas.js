@@ -178,13 +178,16 @@ function confirmarAccion(mensaje, textoSi = "Sí", textoNo = "No"){
         overlay.addEventListener("click", (e) => {
             const b = e.target.closest("button");
             if(b){
+                document.body.classList.remove("modal-abierto");
                 document.body.removeChild(overlay);
                 resolve(b.dataset.r === "1");
             }else if(e.target === overlay){
+                document.body.classList.remove("modal-abierto");
                 document.body.removeChild(overlay);
                 resolve(false);
             }
         });
+        document.body.classList.add("modal-abierto");
         document.body.appendChild(overlay);
     });
 }
@@ -208,9 +211,11 @@ function elegirMetodoPago(){
             const b = e.target.closest("button");
             if(!b && e.target !== overlay){ return; }
             const m = b ? b.dataset.m : "";
+            document.body.classList.remove("modal-abierto");
             document.body.removeChild(overlay);
             resolve(m || null);
         });
+        document.body.classList.add("modal-abierto");
         document.body.appendChild(overlay);
     });
 }

@@ -2053,3 +2053,12 @@ textarea{
     padding:24px; width:min(90vw,340px); text-align:center; display:flex; flex-direction:column; gap:14px;
 }
 .reserva-modal-botones{ display:flex; gap:10px; flex-direction:column; }
+
+/* ---- Bloqueo de scroll de fondo cuando hay un popup abierto ---- */
+/* body.modal-abierto ya pone overflow:hidden, pero en Safari/iOS el
+   scroll lo hace <html>. Con :has bloqueamos también la raíz. */
+html:has(body.modal-abierto){ overflow:hidden !important; }
+body.modal-abierto{ overflow:hidden !important; overscroll-behavior:none; }
+
+/* Los overlays no encadenan su scroll al fondo */
+.reserva-modal-overlay{ overscroll-behavior:contain; touch-action:none; }
