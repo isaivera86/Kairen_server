@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
@@ -1632,7 +1632,18 @@ app.put("/api/bot/config", (req, res) => {
 // Estado del bot (lo lee el panel)
 app.get("/api/bot/estado", (req, res) => {
   const db = leerDB();
-  res.json(db.botEstado || { estado: "desconocido", qr: null, ts: null });
+  const est = db.botEstado || { estado: "desconocido", qr: null, ts: null };
+
+  // Heartbeat: si el bot lleva mucho sin reportar, se considera desconectado.
+  const LIMITE_MS = 90 * 1000; // 90 segundos
+  if(est.ts && est.estado === "conectado"){
+    const desde = Date.now() - new Date(est.ts).getTime();
+    if(desde > LIMITE_MS){
+      return res.json({ ...est, estado: "desconectado", qr: null, stale: true });
+    }
+  }
+
+  res.json(est);
 });
 
 // Estado del bot (lo reporta el bot) — protegido con token
@@ -1863,6 +1874,53 @@ function encolarBoleto(db, reserva){
   });
 }
 
+// Registra la reserva confirmada como VENTA en la caja de su función.
+function registrarVentaDesdeReserva(db, reserva){
+  if(reserva.ventaRegistrada){ return; }              // ya se registró, no duplicar
+  if(reserva.eventoId == null || reserva.funcionId == null){ return; }
+
+  const evento = (db.eventos || []).find(e => String(e.id) === String(reserva.eventoId));
+  if(!evento){ return; }
+  const funcion = (evento.funciones || []).find(f => String(f.id) === String(reserva.funcionId));
+  if(!funcion){ return; }
+
+  if(!funcion.movimientos){ funcion.movimientos = []; }
+  if(!funcion.foliosContador){ funcion.foliosContador = {}; }
+
+  const cant = Math.max(1, Number(reserva.boletos) || 1);
+  const cat = "general";
+  const prefijo = "GEN";
+  const actual = Number(funcion.foliosContador[cat]) || 0;
+  const folios = [];
+  for(let i = 1; i <= cant; i++){
+    folios.push(`${prefijo}-${String(actual + i).padStart(3, "0")}`);
+  }
+  funcion.foliosContador[cat] = actual + cant;
+
+  const total = Number(reserva.total) || 0;
+  const precioUnitario = cant > 0 ? Math.round(total / cant) : total;
+
+  funcion.movimientos.push({
+    id: Date.now(),
+    tipo: "venta",
+    metodoPago: reserva.metodoPago || "transferencia",
+    categoria: cat,
+    cantidad: cant,
+    precioUnitario,
+    comprador: reserva.nombre || "",
+    telefono: reserva.telefono || "",
+    folios,
+    boletos: folios.map(f => ({ folio: f, token: generarTokenBoleto() })),
+    monto: total,
+    concepto: `WhatsApp ${reserva.folio}`,
+    notas: `Reserva ${reserva.folio} (bot)`,
+    origen: "bot",
+    fecha: new Date().toISOString()
+  });
+
+  reserva.ventaRegistrada = true;
+}
+
 // Confirmar pago -> status Confirmada + encola el boleto con QR
 app.post("/api/reservas/:folio/confirmar", (req, res) => {
   const db = leerDB();
@@ -1872,13 +1930,17 @@ app.post("/api/reservas/:folio/confirmar", (req, res) => {
   );
   if(!r){ return res.status(404).json({ mensaje: "Reserva no encontrada" }); }
 
+  const yaConfirmada = String(r.status || "").toLowerCase().includes("confirm");
+
   r.status = "Confirmada";
-  r.metodoPago = String(req.body.metodoPago || "transferencia");
+  r.metodoPago = String(req.body.metodoPago || r.metodoPago || "transferencia");
   r.confirmado = new Date().toISOString();
 
-  encolarBoleto(db, r);
+  registrarVentaDesdeReserva(db, r);  // suma a Ventas (solo la 1a vez)
+  encolarBoleto(db, r);               // (re)envía el boleto con QR
   guardarDB(db);
-  res.json({ mensaje: "Reserva confirmada, boleto en camino", reserva: r });
+
+  res.json({ mensaje: yaConfirmada ? "Boleto reenviado" : "Reserva confirmada, boleto en camino", reserva: r });
 });
 
 // Cancelar reserva
