@@ -121,16 +121,11 @@ async function cargarConfigBot(){
         return;
     }
 
-    const pn = document.getElementById("botPrecioNormal");
-    const pp = document.getElementById("botPrecioPreventa");
-    if(pn){ pn.value = cfg.precios?.normal ?? ""; }
-    if(pp){ pp.value = cfg.precios?.preventa ?? ""; }
+    const cont = document.getElementById("botMensajes");
+    if(!cont){ return; }
 
     BOT_LOGO_URL = cfg.logo || "";
     pintarLogoPreview();
-
-    const cont = document.getElementById("botMensajes");
-    if(!cont){ return; }
 
     BOT_CONFIG_KEYS = Object.keys(cfg.mensajes || {});
     if(!BOT_CONFIG_KEYS.length){
@@ -158,16 +153,11 @@ async function guardarConfigBot(){
         if(ta){ mensajes[k] = ta.value; }
     });
 
-    const precios = {
-        normal: Number(document.getElementById("botPrecioNormal")?.value || 0),
-        preventa: Number(document.getElementById("botPrecioPreventa")?.value || 0)
-    };
-
     try{
         const r = await fetch(`${API_URL}/api/bot/config`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ precios, mensajes, logo: BOT_LOGO_URL })
+            body: JSON.stringify({ mensajes, logo: BOT_LOGO_URL })
         });
         if(!r.ok){ throw new Error("PUT falló"); }
         mostrarToast("Configuración del bot guardada ✅", "success");
