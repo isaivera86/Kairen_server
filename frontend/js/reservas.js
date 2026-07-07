@@ -106,7 +106,8 @@ async function confirmarReserva(folio){
 }
 
 async function cancelarReserva(folio){
-    if(!confirm(`¿Cancelar la reserva ${folio}?`)){ return; }
+    const ok = await confirmarAccion(`¿Cancelar la reserva ${folio}?`, "Sí, cancelar", "No");
+    if(!ok){ return; }
     try{
         const r = await fetch(`${API_URL}/api/reservas/${encodeURIComponent(folio)}/cancelar`, { method: "POST" });
         if(!r.ok){ throw new Error("no ok"); }
@@ -130,6 +131,34 @@ async function reenviarBoleto(folio){
     }catch(e){
         mostrarToast("No se pudo reenviar", "error");
     }
+}
+
+// Popup de confirmación con nuestro estilo (sí / no)
+function confirmarAccion(mensaje, textoSi = "Sí", textoNo = "No"){
+    return new Promise(resolve => {
+        const overlay = document.createElement("div");
+        overlay.className = "reserva-modal-overlay";
+        overlay.innerHTML = `
+            <div class="reserva-modal">
+                <h3>${mensaje}</h3>
+                <div class="reserva-modal-botones">
+                    <button class="btn-peligro" data-r="1">${textoSi}</button>
+                    <button class="btn-secundario" data-r="0">${textoNo}</button>
+                </div>
+            </div>
+        `;
+        overlay.addEventListener("click", (e) => {
+            const b = e.target.closest("button");
+            if(b){
+                document.body.removeChild(overlay);
+                resolve(b.dataset.r === "1");
+            }else if(e.target === overlay){
+                document.body.removeChild(overlay);
+                resolve(false);
+            }
+        });
+        document.body.appendChild(overlay);
+    });
 }
 
 // Mini selector de método de pago (efectivo / transferencia)
