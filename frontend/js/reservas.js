@@ -98,7 +98,11 @@ async function confirmarReserva(folio){
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ metodoPago: metodo })
         });
-        if(!r.ok){ throw new Error("no ok"); }
+        const data = await r.json().catch(() => ({}));
+        if(!r.ok){
+            mostrarToast(data.mensaje || "No se pudo confirmar", "error");
+            return;
+        }
         mostrarToast(`Reserva ${folio} confirmada. Boleto en camino 🎫`, "success");
         renderPanelReservas();
     }catch(e){

@@ -1714,8 +1714,10 @@ app.post("/api/bot/eventos/:id/visible", (req, res) => {
    El bot crea/consulta reservas aquí.
 ============================================================ */
 
+// El cupo se descuenta SOLO cuando el admin confirma el pago (o cortesía).
+// Una pre-reserva (esperando pago) NO ocupa lugar todavía.
 const STATUS_OCUPAN_CUPO = [
-  "pre-confirmada", "comprobante recibido", "pago confirmado", "cortesía", "confirmada"
+  "pago confirmado", "confirmada", "cortesía"
 ];
 
 function obtenerReservas(db){
@@ -1931,6 +1933,23 @@ app.post("/api/reservas/:folio/confirmar", (req, res) => {
   if(!r){ return res.status(404).json({ mensaje: "Reserva no encontrada" }); }
 
   const yaConfirmada = String(r.status || "").toLowerCase().includes("confirm");
+
+  // Candado: no sobrevender. Solo si aún no estaba confirmada.
+  if(!yaConfirmada && r.eventoId != null && r.funcionId != null){
+    const fr = funcionReal(db, r.eventoId, r.funcionId);
+    if(fr){
+      const capacidad = fr.fn.boletosDisponibles != null ? fr.fn.boletosDisponibles : 300;
+      const ocupados = ocupadosReserva(db, r.eventoId, r.funcionId); // ya confirmadas
+      const disponibles = capacidad - ocupados;
+      const piden = Number(r.boletos) || 1;
+      if(piden > disponibles){
+        return res.status(409).json({
+          mensaje: `Sin cupo: quedan ${disponibles} y esta reserva pide ${piden}.`,
+          disponibles
+        });
+      }
+    }
+  }
 
   r.status = "Confirmada";
   r.metodoPago = String(req.body.metodoPago || r.metodoPago || "transferencia");
