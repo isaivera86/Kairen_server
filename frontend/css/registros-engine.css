@@ -2068,3 +2068,29 @@ body.modal-abierto{ overflow:hidden !important; overscroll-behavior:none; }
     display:block; font-size:.72rem; opacity:.6; margin:-4px 0 6px 0;
     font-family:monospace;
 }
+
+/* ---- Tabla de ventas por función ---- */
+.modal-tabla-ventas{ max-width:820px; width:95%; }
+.tabla-ventas-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.tabla-ventas{ width:100%; border-collapse:collapse; font-size:.88rem; }
+.tabla-ventas th, .tabla-ventas td{
+    padding:10px 12px; text-align:left; border-bottom:1px solid rgba(255,255,255,.08);
+    white-space:nowrap;
+}
+.tabla-ventas thead th{
+    font-size:.75rem; text-transform:uppercase; letter-spacing:.03em;
+    opacity:.7; position:sticky; top:0; background:#141726;
+}
+.tabla-ventas tbody tr:hover{ background:rgba(255,255,255,.03); }
+.tabla-ventas .tv-num{ text-align:right; font-variant-numeric:tabular-nums; }
+.tabla-ventas .tv-acc{ text-align:center; }
+.tabla-ventas-totales{
+    display:flex; gap:24px; justify-content:flex-end; flex-wrap:wrap;
+    margin-top:16px; padding-top:14px; border-top:2px solid rgba(255,255,255,.12);
+    font-size:.95rem;
+}
+.tabla-ventas-totales strong{ color:#22c55e; }
+@media (max-width:640px){
+    .tabla-ventas th, .tabla-ventas td{ padding:8px 9px; font-size:.82rem; }
+    .tabla-ventas-totales{ justify-content:space-between; gap:10px; }
+}

@@ -1553,6 +1553,32 @@
 
 </div>
 
+<div id="modalTablaVentas" class="modal oculto">
+    <div class="modal-contenido modal-tabla-ventas">
+        <div class="modal-header">
+            <h2>📋 Ventas de la función</h2>
+            <button class="modal-cerrar" onclick="cerrarTablaVentas()">✕</button>
+        </div>
+        <div class="tabla-ventas-scroll">
+            <table class="tabla-ventas">
+                <thead>
+                    <tr>
+                        <th>Folio</th>
+                        <th>Comprador</th>
+                        <th>Cant.</th>
+                        <th>Total</th>
+                        <th>Pago</th>
+                        <th>Origen</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tablaVentasBody"></tbody>
+            </table>
+        </div>
+        <div id="tablaVentasTotales" class="tabla-ventas-totales"></div>
+    </div>
+</div>
+
 <div id="modalCaja" class="modal oculto">
     <div class="modal-contenido modal-evento modal-evento-premium">
         <div class="modal-evento-scroll">

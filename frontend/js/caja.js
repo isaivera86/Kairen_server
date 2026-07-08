@@ -566,10 +566,126 @@ async function renderPanelVentas(){
                     <strong class="ventas-func-vendido">${pesos(f.vendido)}</strong>
                     <span class="ventas-func-saldo">Saldo ${pesos(f.saldo)}</span>
                 </div>
+                <button class="btn-secundario btn-mini" onclick="abrirTablaVentas(${f.ev.id}, ${f.fn.id})">📋 Tabla</button>
                 <button class="btn-secundario btn-mini" onclick="abrirCaja(${f.ev.id}, ${f.fn.id})">💵 Caja</button>
             </div>
         </div>
     `).join("");
+}
+
+/* ============================================================
+   TABLA DE VENTAS por función (solo lectura + borrar)
+============================================================ */
+
+let TABLA_VENTAS_CTX = { eventoId: null, funcionId: null };
+
+async function abrirTablaVentas(eventoId, funcionId){
+    TABLA_VENTAS_CTX = { eventoId, funcionId };
+    const modal = document.getElementById("modalTablaVentas");
+    if(modal){ modal.classList.remove("oculto"); }
+    document.body.classList.add("modal-abierto");
+    await cargarTablaVentas();
+}
+
+function cerrarTablaVentas(){
+    const modal = document.getElementById("modalTablaVentas");
+    if(modal){ modal.classList.add("oculto"); }
+    document.body.classList.remove("modal-abierto");
+    const sec = document.getElementById("seccionVentas");
+    if(sec && !sec.classList.contains("oculto") && typeof renderPanelVentas === "function"){
+        renderPanelVentas();
+    }
+}
+
+async function cargarTablaVentas(){
+    const { eventoId, funcionId } = TABLA_VENTAS_CTX;
+    const cont = document.getElementById("tablaVentasBody");
+    const tot = document.getElementById("tablaVentasTotales");
+    if(cont){ cont.innerHTML = `<tr><td colspan="7" class="caja-vacio">Cargando…</td></tr>`; }
+
+    let movimientos = [];
+    try{
+        const r = await fetch(`${API_URL}/api/eventos/${eventoId}/funciones/${funcionId}/movimientos`);
+        movimientos = await r.json();
+    }catch(e){ movimientos = []; }
+
+    const ventas = (Array.isArray(movimientos) ? movimientos : []).filter(m => m.tipo === "venta");
+
+    if(!ventas.length){
+        if(cont){ cont.innerHTML = `<tr><td colspan="7" class="caja-vacio">Aún no hay ventas en esta función.</td></tr>`; }
+        if(tot){ tot.innerHTML = ""; }
+        return;
+    }
+
+    if(cont){
+        cont.innerHTML = ventas.slice().reverse().map(m => {
+            const folios = (m.folios || []).join(", ");
+            const origen = m.origen === "bot" ? "🤖 Bot" : "🏪 Caja";
+            const pago = `${iconoMetodoCaja(m.metodoPago)} ${escaparTexto(m.metodoPago || "")}`;
+            return `
+                <tr>
+                    <td>${escaparTexto(folios)}</td>
+                    <td>${escaparTexto(m.comprador || "—")}</td>
+                    <td class="tv-num">${m.cantidad || 0}</td>
+                    <td class="tv-num">${pesos(m.monto)}</td>
+                    <td>${pago}</td>
+                    <td>${origen}</td>
+                    <td class="tv-acc"><button class="caja-mov-del" onclick="eliminarVentaTabla(${m.id})" title="Eliminar">🗑️</button></td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    const totalVendido = ventas.reduce((a, m) => a + (m.monto || 0), 0);
+    const totalBoletos = ventas.reduce((a, m) => a + (m.cantidad || 0), 0);
+    if(tot){
+        tot.innerHTML = `
+            <div class="tv-total-item">🎟️ Boletos vendidos: <strong>${totalBoletos}</strong></div>
+            <div class="tv-total-item">💰 Total vendido: <strong>${pesos(totalVendido)}</strong></div>
+        `;
+    }
+}
+
+async function eliminarVentaTabla(movId){
+    const ok = await confirmarAccionVentas("¿Eliminar esta venta?");
+    if(!ok){ return; }
+    const { eventoId, funcionId } = TABLA_VENTAS_CTX;
+    try{
+        const r = await fetch(`${API_URL}/api/eventos/${eventoId}/funciones/${funcionId}/movimientos/${movId}`, { method: "DELETE" });
+        if(!r.ok){ throw new Error("no ok"); }
+        mostrarToast("Venta eliminada 🗑️", "success");
+        await cargarTablaVentas();
+    }catch(e){
+        mostrarToast("No se pudo eliminar", "error");
+    }
+}
+
+// Confirmación con estilo propio (para la tabla)
+function confirmarAccionVentas(mensaje){
+    return new Promise(resolve => {
+        const overlay = document.createElement("div");
+        overlay.className = "reserva-modal-overlay";
+        overlay.innerHTML = `
+            <div class="reserva-modal">
+                <h3>${mensaje}</h3>
+                <div class="reserva-modal-botones">
+                    <button class="btn-peligro" data-r="1">Sí, eliminar</button>
+                    <button class="btn-secundario" data-r="0">No</button>
+                </div>
+            </div>
+        `;
+        overlay.addEventListener("click", (e) => {
+            const b = e.target.closest("button");
+            if(b){
+                document.body.removeChild(overlay);
+                resolve(b.dataset.r === "1");
+            }else if(e.target === overlay){
+                document.body.removeChild(overlay);
+                resolve(false);
+            }
+        });
+        document.body.appendChild(overlay);
+    });
 }
 
 
