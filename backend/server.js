@@ -1686,7 +1686,10 @@ app.get("/api/bot/eventos", (req, res) => {
           hora: fn.hora || "",
           precio: fn.precio || (fn.categorias && fn.categorias.general && fn.categorias.general.precio) || 0,
           boletosDisponibles: (fn.boletosDisponibles != null ? fn.boletosDisponibles
-            : (fn.categorias && fn.categorias.general && fn.categorias.general.boletos)) || 0
+            : (fn.categorias && fn.categorias.general && fn.categorias.general.boletos)) || 0,
+          descuentos: (fn.descuentos || [])
+            .filter(d => d.activo !== false)
+            .map(d => ({ codigo: String(d.codigo || "").toUpperCase(), tipo: d.tipo, valor: Number(d.valor) || 0 }))
         }))
     }))
     .filter(ev => ev.funciones.length > 0);
