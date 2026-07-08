@@ -7,6 +7,24 @@
 let RESERVAS_CACHE = [];
 let RESERVAS_FILTRO = "todas";
 
+const R_DIAS = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+const R_MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+function fechaBonitaR(iso){
+    if(!iso){ return ""; }
+    const p = String(iso).split("-");
+    if(p.length !== 3){ return String(iso); }
+    const a = +p[0], m = +p[1], d = +p[2];
+    if(!a || !m || !d){ return String(iso); }
+    const f = new Date(a, m - 1, d);
+    return `${R_DIAS[f.getDay()]} ${d} de ${R_MESES[m - 1]}`;
+}
+function horaBonitaR(h){
+    if(!h){ return ""; }
+    h = String(h).trim();
+    return /hrs?$/i.test(h) ? h : `${h} hrs`;
+}
+
 async function renderPanelReservas(){
     const cont = document.getElementById("reservasLista");
     if(!cont){ return; }
@@ -56,7 +74,7 @@ function pintarReservas(){
         const canc = esCancelada(r.status);
         const claseEstado = conf ? "ok" : (canc ? "err" : "warn");
         const evento = escaparTexto(r.evento || r.funcion || "—");
-        const cuando = `${escaparTexto(r.fecha || "")} ${escaparTexto(r.hora || r.horario || "")}`.trim();
+        const cuando = `${escaparTexto(fechaBonitaR(r.fecha))} ${escaparTexto(horaBonitaR(r.hora || r.horario))}`.trim();
         const tel = escaparTexto(r.telefono || "");
 
         let acciones = "";
