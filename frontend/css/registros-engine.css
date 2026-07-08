@@ -2062,3 +2062,9 @@ body.modal-abierto{ overflow:hidden !important; overscroll-behavior:none; }
 
 /* Los overlays no encadenan su scroll al fondo */
 .reserva-modal-overlay{ overscroll-behavior:contain; touch-action:none; }
+
+/* ---- Ayuda de variables en mensajes del bot ---- */
+.bot-campo-vars{
+    display:block; font-size:.72rem; opacity:.6; margin:-4px 0 6px 0;
+    font-family:monospace;
+}

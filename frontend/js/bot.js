@@ -8,8 +8,33 @@
 let BOT_CONFIG_KEYS = [];
 
 const BOT_MSG_LABELS = {
-    menu: "Menú / saludo inicial",
-    confirmacion_venta: "Confirmación de venta (WhatsApp)"
+    menu: "1. Menú / saludo inicial (lista eventos)",
+    menu_funciones: "2. Al elegir evento (lista funciones)",
+    pedir_codigo: "3. Pedir código de descuento",
+    pedir_boletos: "4. Pedir cantidad de boletos",
+    pedir_nombre: "5. Pedir nombre",
+    confirmar_datos: "6. Confirmar datos (resumen)",
+    pre_confirmada: "7. Reservación pre-confirmada (cómo pagar)",
+    datos_pago: "8. Texto de la imagen de pago",
+    comprobante_recibido: "9. Comprobante recibido",
+    recordar_comprobante: "10. Recordar enviar comprobante",
+    modo_humano: "11. Modo asesor (humano)",
+    confirmacion_venta: "12. Confirmación de venta (caja)"
+};
+
+const BOT_MSG_VARS = {
+    menu: "{lista_eventos}",
+    menu_funciones: "{evento}, {lista_funciones}",
+    pedir_codigo: "{evento}, {fecha}, {hora}, {precio}",
+    pedir_boletos: "(sin variables)",
+    pedir_nombre: "(sin variables)",
+    confirmar_datos: "{evento}, {fecha}, {hora}, {cantidad}, {codigo}, {total}, {nombre}",
+    pre_confirmada: "{folio}, {evento}, {fecha}, {hora}, {cantidad}, {total}, {nombre}",
+    datos_pago: "(sin variables)",
+    comprobante_recibido: "{folio}",
+    recordar_comprobante: "{folio}",
+    modo_humano: "(sin variables)",
+    confirmacion_venta: "{nombre}, {evento}, {fecha}, {categoria}, {cantidad}, {folios}"
 };
 
 async function renderPanelBot(){
@@ -133,13 +158,22 @@ async function cargarConfigBot(){
         return;
     }
 
+    // Ordena según el número de la etiqueta (1., 2., 3.…); lo demás al final.
+    const orden = Object.keys(BOT_MSG_LABELS);
+    BOT_CONFIG_KEYS.sort((a, b) => {
+        const ia = orden.indexOf(a); const ib = orden.indexOf(b);
+        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+
     cont.innerHTML = BOT_CONFIG_KEYS.map(k => {
         const label = BOT_MSG_LABELS[k] || k;
+        const vars = BOT_MSG_VARS[k] ? `<span class="bot-campo-vars">Variables: ${escaparTexto(BOT_MSG_VARS[k])}</span>` : "";
         const val = escaparTexto(cfg.mensajes[k] || "");
         const filas = Math.min(10, Math.max(3, (cfg.mensajes[k] || "").split("\n").length + 1));
         return `
             <div class="bot-campo">
-                <label class="bot-campo-label">${escaparTexto(label)} <span class="bot-campo-key">(${escaparTexto(k)})</span></label>
+                <label class="bot-campo-label">${escaparTexto(label)}</label>
+                ${vars}
                 <textarea id="botMsg_${escaparTexto(k)}" rows="${filas}">${val}</textarea>
             </div>
         `;

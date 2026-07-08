@@ -1384,7 +1384,17 @@ const BOT_CONFIG_DEFAULT = {
     { nombre: "Domingo 28 de Junio", horario: "19:00 hrs", capacidad: 300, hoja: "Domingo28", activa: true }
   ],
   mensajes: {
-    menu: "🎭 *LA DIVINA COMEDIA 2.0*\n\n¡Hola! Gracias por escribirnos. ¿Qué deseas hacer?\n\n*1* · Comprar boletos 🎟️\n*2* · Ver mi reservación 🔎\n*3* · Preguntas frecuentes ❓\n\nEl boleto general cuesta *{precio_normal} MXN*.\nResponde con el número de la opción.",
+    menu: "Gracias por comunicarte con *Re5iliart* 🎭\n\nNuestros eventos:\n\n{lista_eventos}\n\nResponde con el *número* del evento.",
+    menu_funciones: "🎭 *{evento}*\nFunciones disponibles:\n\n{lista_funciones}\n\nResponde con el *número* de la función.",
+    pedir_codigo: "🎟️ Elegiste: *{evento}*\n📅 {fecha} {hora}\n💵 ${precio} por boleto\n\nSi tienes un código de descuento, escríbelo.\nSi no, responde: *No tengo*",
+    pedir_boletos: "¿Cuántos boletos deseas?",
+    pedir_nombre: "Excelente 🎟️\n\n¿A qué nombre hacemos la reservación?",
+    confirmar_datos: "✅ *CONFIRMA TUS DATOS*\n\n🎭 {evento}\n📅 {fecha} {hora}\n🎟️ {cantidad} boleto(s)\n🎁 {codigo}\n💵 Total: ${total} MXN\n👤 {nombre}\n\n*1* Sí, confirmar\n*2* No, corregir",
+    pre_confirmada: "🎉 *RESERVACIÓN PRE-CONFIRMADA*\n\n🧾 Folio: {folio}\n🎭 {evento}\n📅 {fecha} {hora}\n🎟️ {cantidad} boleto(s)\n💵 Total: ${total} MXN\n👤 {nombre}\n\n💳 Realiza tu pago por *transferencia* y envía tu *comprobante* por aquí para confirmar ✅",
+    datos_pago: "Datos para tu transferencia 💳",
+    comprobante_recibido: "✅ *Comprobante recibido*\n\nRevisaremos tu pago en un máximo de *30 minutos* y te confirmamos.\n\n🧾 Folio: {folio}\n⚠️ Tu folio NO corresponde a un asiento asignado.",
+    recordar_comprobante: "Gracias 🙌 Para confirmar tu lugar, envía la *foto o captura* de tu comprobante por aquí.\n\n🧾 Folio: {folio}",
+    modo_humano: "🧑 En un momento un asesor continúa tu conversación por aquí.\n\n(Escribe *cancelar* si prefieres seguir con el bot.)",
     confirmacion_venta: "Hola {nombre}! 🎫\nTu compra para *{evento}* el {fecha} está confirmada.\n{categoria} · {cantidad} boleto(s)\nFolios: {folios}\n¡Te esperamos!"
   }
 };
