@@ -1395,6 +1395,7 @@ const BOT_CONFIG_DEFAULT = {
     comprobante_recibido: "✅ *Comprobante recibido*\n\nRevisaremos tu pago en un máximo de *30 minutos* y te confirmamos.\n\n🧾 Folio: {folio}\n⚠️ Tu folio NO corresponde a un asiento asignado.",
     recordar_comprobante: "Gracias 🙌 Para confirmar tu lugar, envía la *foto o captura* de tu comprobante por aquí.\n\n🧾 Folio: {folio}",
     modo_humano: "🧑 En un momento un asesor continúa tu conversación por aquí.\n\n(Escribe *cancelar* si prefieres seguir con el bot.)",
+    faq: "ℹ️ *Información*\n\n📍 Dirección: (escribe aquí tu dirección)\n🕐 Horario: (escribe aquí tus horarios)\n💳 Pagos: transferencia\n\nPara comprar escribe *hola* 🎟️",
     confirmacion_venta: "Hola {nombre}! 🎫\nTu compra para *{evento}* el {fecha} está confirmada.\n{categoria} · {cantidad} boleto(s)\nFolios: {folios}\n¡Te esperamos!"
   }
 };

@@ -19,7 +19,8 @@ const BOT_MSG_LABELS = {
     comprobante_recibido: "9. Comprobante recibido",
     recordar_comprobante: "10. Recordar enviar comprobante",
     modo_humano: "11. Modo asesor (humano)",
-    confirmacion_venta: "12. Confirmación de venta (caja)"
+    faq: "12. Información / preguntas frecuentes",
+    confirmacion_venta: "13. Confirmación de venta (caja)"
 };
 
 const BOT_MSG_VARS = {
@@ -34,6 +35,7 @@ const BOT_MSG_VARS = {
     comprobante_recibido: "{folio}",
     recordar_comprobante: "{folio}",
     modo_humano: "(sin variables)",
+    faq: "(sin variables)",
     confirmacion_venta: "{nombre}, {evento}, {fecha}, {categoria}, {cantidad}, {folios}"
 };
 
