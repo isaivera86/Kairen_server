@@ -1679,6 +1679,7 @@ app.get("/api/bot/eventos", (req, res) => {
       id: ev.id,
       nombre: ev.nombre,
       lugar: ev.lugar || "",
+      direccion: ev.direccion || "",
       funciones: (ev.funciones || [])
         .filter(fn => (fn.tipoRegistro || "funcion") === "funcion" && fn.activa !== false)
         .map(fn => ({
@@ -1704,12 +1705,23 @@ app.get("/api/bot/eventos-config", (req, res) => {
     id: ev.id,
     nombre: ev.nombre,
     lugar: ev.lugar || "",
+    direccion: ev.direccion || "",
     activo: ev.activo !== false,
     enBot: ev.enBot !== false,
     numFunciones: (ev.funciones || [])
       .filter(fn => (fn.tipoRegistro || "funcion") === "funcion" && fn.activa !== false).length
   }));
   res.json(out);
+});
+
+// Guardar dirección / detalles de un evento (para el bot)
+app.post("/api/bot/eventos/:id/direccion", (req, res) => {
+  const db = leerDB();
+  const ev = (db.eventos || []).find(e => String(e.id) === String(req.params.id));
+  if(!ev){ return res.status(404).json({ mensaje: "Evento no encontrado" }); }
+  ev.direccion = String(req.body.direccion || "");
+  guardarDB(db);
+  res.json({ mensaje: "ok", direccion: ev.direccion });
 });
 
 // Prender/apagar un evento en el bot

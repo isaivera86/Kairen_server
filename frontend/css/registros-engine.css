@@ -2094,3 +2094,7 @@ body.modal-abierto{ overflow:hidden !important; overscroll-behavior:none; }
     .tabla-ventas th, .tabla-ventas td{ padding:8px 9px; font-size:.82rem; }
     .tabla-ventas-totales{ justify-content:space-between; gap:10px; }
 }
+
+/* ---- Dirección por evento (panel Bot) ---- */
+.bot-evento-dir{ margin:-4px 0 14px 0; padding:0 4px; }
+.bot-evento-dir textarea{ width:100%; margin-bottom:6px; }

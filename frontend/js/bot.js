@@ -242,6 +242,11 @@ async function renderEventosBot(){
                     <span class="bot-switch-track"></span>
                 </label>
             </div>
+            <div class="bot-evento-dir">
+                <label class="bot-campo-vars">📍 Dirección / detalles (para "info" en el bot)</label>
+                <textarea id="botDir_${ev.id}" rows="2" placeholder="Dirección, referencias, link de mapa...">${escaparTexto(ev.direccion || "")}</textarea>
+                <button class="btn-secundario btn-mini" onclick="guardarDireccionEvento('${ev.id}')">Guardar dirección</button>
+            </div>
         `;
     }).join("");
 }
@@ -258,5 +263,21 @@ async function toggleEventoBot(id, visible){
     }catch(e){
         mostrarToast("No se pudo cambiar", "error");
         renderEventosBot();
+    }
+}
+
+async function guardarDireccionEvento(id){
+    const ta = document.getElementById(`botDir_${id}`);
+    if(!ta){ return; }
+    try{
+        const r = await fetch(`${API_URL}/api/bot/eventos/${encodeURIComponent(id)}/direccion`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ direccion: ta.value })
+        });
+        if(!r.ok){ throw new Error("no ok"); }
+        mostrarToast("Dirección guardada 📍", "success");
+    }catch(e){
+        mostrarToast("No se pudo guardar la dirección", "error");
     }
 }
