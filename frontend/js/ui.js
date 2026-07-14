@@ -74,6 +74,7 @@ const SECCIONES_APP = [
     "Funciones",
     "Ventas",
     "Reservas",
+    "Validar",
     "Bot",
     "Configuracion",
     "NuevoRegistro"
@@ -87,6 +88,7 @@ const MENUS_APP = [
     "Funciones",
     "Ventas",
     "Reservas",
+    "Validar",
     "Bot",
     "Configuracion"
 ];
@@ -99,6 +101,7 @@ const MAPA_NAVEGACION = {
     funciones:     { seccion: "Funciones",     menu: "Funciones" },
     ventas:        { seccion: "Ventas",        menu: "Ventas" },
     reservas:      { seccion: "Reservas",      menu: "Reservas" },
+    validar:       { seccion: "Validar",       menu: "Validar" },
     bot:           { seccion: "Bot",           menu: "Bot" },
     configuracion: { seccion: "Configuracion", menu: "Configuracion" },
     // nuevoRegistro no tiene menu propio -> resalta Agenda.
@@ -149,6 +152,11 @@ function mostrarSeccion(seccion){
     // Reservas: panel de reservas del bot bajo demanda.
     if(destino.seccion === "Reservas" && typeof renderPanelReservas === "function"){
         renderPanelReservas();
+    }
+
+    // Validar: panel de validación de boletos bajo demanda.
+    if(destino.seccion === "Validar" && typeof renderPanelValidar === "function"){
+        renderPanelValidar();
     }
 
     // Bot: panel de configuración/estado bajo demanda.

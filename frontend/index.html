@@ -58,6 +58,7 @@
         <div class="sidebar-section">Operación</div>
         <div class="menu-item" id="menuVentas" onclick="mostrarSeccion('ventas')">💰 Ventas</div>
         <div class="menu-item" id="menuReservas" onclick="mostrarSeccion('reservas')">📋 Reservas</div>
+        <div class="menu-item" id="menuValidar" onclick="mostrarSeccion('validar')">🎫 Validar</div>
         <div class="menu-item" id="menuBot" onclick="mostrarSeccion('bot')">🤖 Bot</div>
     </aside>
 
@@ -574,6 +575,44 @@
                 <div id="reservasLista" class="reservas-lista"></div>
             </div>
         </section>
+        <section id="seccionValidar" class="app-section oculto">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>🎫 Validar boletos (entrada)</h2>
+                        <p class="panel-sub">Escanea el QR o escribe el folio. Funciona con o sin internet.</p>
+                    </div>
+                </div>
+
+                <div class="validar-config">
+                    <label>Evento / Función a validar:</label>
+                    <select id="validarFuncion" onchange="seleccionarFuncionValidar()"></select>
+                    <div class="validar-acciones">
+                        <button class="btn-secundario" onclick="descargarBoletosOffline()">⬇️ Descargar (offline)</button>
+                        <button class="btn-secundario" onclick="sincronizarEntradas()">🔄 Sincronizar</button>
+                    </div>
+                    <div id="validarEstadoConexion" class="validar-conexion"></div>
+                </div>
+
+                <div id="validarScanner" class="validar-scanner-box">
+                    <div id="qrLector"></div>
+                    <button id="btnCamara" class="btn-primario" onclick="toggleCamara()">📷 Encender cámara</button>
+                </div>
+
+                <div class="validar-manual">
+                    <input id="validarManual" type="text" placeholder="O escribe el folio (ej. R001-1 o GEN-001)"
+                        onkeydown="if(event.key==='Enter'){validarManual()}">
+                    <button class="btn-primario" onclick="validarManual()">Validar</button>
+                </div>
+
+                <div id="validarResultado" class="validar-resultado"></div>
+
+                <div class="validar-contador">
+                    <span id="validarContadorTexto">Boletos descargados: 0</span>
+                </div>
+            </div>
+        </section>
+
         <section id="seccionBot" class="app-section oculto">
             <div class="panel">
                 <div class="panel-header">
@@ -1746,6 +1785,10 @@
 <script src="js/caja.js"></script>
 <script src="js/bot.js"></script>
 <script src="js/reservas.js"></script>
+<!-- Escáner QR: local primero, CDN de respaldo -->
+<script src="vendor/html5-qrcode.min.js"
+    onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';document.head.appendChild(s);"></script>
+<script src="js/validar.js"></script>
 <script src="js/modales.js"></script>
 <script src="js/app.js"></script>
 

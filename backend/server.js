@@ -2044,6 +2044,175 @@ app.delete("/api/reservas", (req, res) => {
 
 
 /* ============================================================
+   VALIDACIÓN DE BOLETOS EN LA ENTRADA (híbrido)
+   Acepta 2 formatos de QR:
+     - Caja:  KRN:<token>            (token aleatorio del boleto)
+     - Bot:   KRN:<folioReserva>-<n> (ej. R001-1)
+============================================================ */
+
+function limpiarCodigo(c){
+  return String(c || "").replace(/^KRN:/i, "").trim();
+}
+
+// Busca un boleto de caja por su token o su folio (en todas las funciones)
+function buscarBoletoCaja(db, valor){
+  const v = String(valor).toUpperCase();
+  for(const ev of (db.eventos || [])){
+    for(const fn of (ev.funciones || [])){
+      for(const mov of (fn.movimientos || [])){
+        if(mov.tipo !== "venta" || !Array.isArray(mov.boletos)){ continue; }
+        const b = mov.boletos.find(x =>
+          String(x.token) === String(valor) ||
+          String(x.folio || "").toUpperCase() === v
+        );
+        if(b){ return { ev, fn, mov, boleto: b }; }
+      }
+    }
+  }
+  return null;
+}
+
+// Bot: separa "<folio>-<n>"
+function buscarBoletoBot(db, codigo){
+  const i = codigo.lastIndexOf("-");
+  if(i < 1){ return null; }
+  const folio = codigo.slice(0, i);
+  const n = parseInt(codigo.slice(i + 1), 10);
+  if(!n){ return null; }
+  const r = (db.reservas || []).find(x => String(x.folio).toUpperCase() === folio.toUpperCase());
+  if(!r){ return null; }
+  return { reserva: r, n };
+}
+
+function esConfirmadaStatus(status){
+  const s = String(status || "").toLowerCase();
+  return s.includes("confirm") || s.includes("pago");
+}
+
+// Valida y (si aplica) marca usado. Devuelve {estado, info, cuando?}
+function validarCodigoBoleto(db, codigoRaw){
+  const codigo = limpiarCodigo(codigoRaw);
+  if(!codigo){ return { estado: "no_existe" }; }
+
+  // 1) Caja (token)
+  const caja = buscarBoletoCaja(db, codigo);
+  if(caja){
+    const info = {
+      tipo: "Caja",
+      folio: caja.boleto.folio || "",
+      nombre: caja.mov.comprador || "—",
+      evento: caja.ev.nombre || "",
+      funcion: `${caja.fn.fecha || ""} ${caja.fn.hora || ""}`.trim()
+    };
+    if(caja.boleto.usado){ return { estado: "usado", cuando: caja.boleto.usado, info }; }
+    caja.boleto.usado = new Date().toISOString();
+    return { estado: "valido", info, _cambio: true };
+  }
+
+  // 2) Bot (folio-n)
+  const bot = buscarBoletoBot(db, codigo);
+  if(bot){
+    const r = bot.reserva;
+    const info = {
+      tipo: "Bot",
+      folio: `${r.folio}-${bot.n}`,
+      nombre: r.nombre || "—",
+      evento: r.evento || "",
+      funcion: `${r.fecha || ""} ${r.hora || ""}`.trim()
+    };
+    if(!esConfirmadaStatus(r.status)){ return { estado: "no_valido", motivo: "Reserva no confirmada", info }; }
+    if(bot.n > (Number(r.boletos) || 0)){ return { estado: "no_existe" }; }
+    r.usados = r.usados || {};
+    if(r.usados[bot.n]){ return { estado: "usado", cuando: r.usados[bot.n], info }; }
+    r.usados[bot.n] = new Date().toISOString();
+    return { estado: "valido", info, _cambio: true };
+  }
+
+  return { estado: "no_existe" };
+}
+
+// Validar un boleto (online, marca usado)
+app.post("/api/validar", (req, res) => {
+  const db = leerDB();
+  const resultado = validarCodigoBoleto(db, req.body && req.body.codigo);
+  if(resultado._cambio){ delete resultado._cambio; guardarDB(db); }
+  res.json(resultado);
+});
+
+// Descargar lista de boletos de una función (para modo offline)
+app.get("/api/validar/lista", (req, res) => {
+  const db = leerDB();
+  const { eventoId, funcionId } = req.query;
+  const out = [];
+
+  const ev = (db.eventos || []).find(e => String(e.id) === String(eventoId));
+  let nombreEv = ev ? ev.nombre : "";
+  if(ev){
+    const fn = (ev.funciones || []).find(f => String(f.id) === String(funcionId));
+    if(fn){
+      for(const mov of (fn.movimientos || [])){
+        if(mov.tipo !== "venta" || !Array.isArray(mov.boletos)){ continue; }
+        for(const b of mov.boletos){
+          out.push({ codigo: b.token, tipo: "Caja", folio: b.folio || "", nombre: mov.comprador || "—", usado: b.usado || null });
+        }
+      }
+    }
+  }
+
+  for(const r of (db.reservas || [])){
+    if(String(r.eventoId) !== String(eventoId) || String(r.funcionId) !== String(funcionId)){ continue; }
+    if(!esConfirmadaStatus(r.status)){ continue; }
+    const total = Number(r.boletos) || 0;
+    r.usados = r.usados || {};
+    for(let n = 1; n <= total; n++){
+      out.push({ codigo: `${r.folio}-${n}`, tipo: "Bot", folio: `${r.folio}-${n}`, nombre: r.nombre || "—", usado: r.usados[n] || null });
+    }
+  }
+
+  res.json({ evento: nombreEv, total: out.length, boletos: out });
+});
+
+// Marca usado con un ts dado (para sincronizar). Devuelve "ok"|"conflicto"|"no_existe"
+function marcarUsadoSync(db, codigoRaw, ts){
+  const codigo = limpiarCodigo(codigoRaw);
+  if(!codigo){ return "no_existe"; }
+  const fecha = ts || new Date().toISOString();
+
+  const caja = buscarBoletoCaja(db, codigo);
+  if(caja){
+    if(caja.boleto.usado){ return "conflicto"; }
+    caja.boleto.usado = fecha;
+    return "ok";
+  }
+  const bot = buscarBoletoBot(db, codigo);
+  if(bot){
+    const r = bot.reserva;
+    if(!esConfirmadaStatus(r.status)){ return "conflicto"; }
+    r.usados = r.usados || {};
+    if(r.usados[bot.n]){ return "conflicto"; }
+    r.usados[bot.n] = fecha;
+    return "ok";
+  }
+  return "no_existe";
+}
+
+// Sincronizar entradas hechas offline
+app.post("/api/validar/sync", (req, res) => {
+  const db = leerDB();
+  const entradas = (req.body && Array.isArray(req.body.entradas)) ? req.body.entradas : [];
+  let aplicadas = 0, conflictos = 0, noExisten = 0;
+  for(const e of entradas){
+    const r = marcarUsadoSync(db, e.codigo, e.ts);
+    if(r === "ok"){ aplicadas++; }
+    else if(r === "conflicto"){ conflictos++; }
+    else { noExisten++; }
+  }
+  guardarDB(db);
+  res.json({ aplicadas, conflictos, noExisten });
+});
+
+
+/* ============================================================
    ALPHA v1.14: CATÁLOGO DE TIPOS DE REGISTRO (editable)
 
    Los tipos operativos viven en db.tiposRegistro. "funcion"
