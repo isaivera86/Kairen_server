@@ -9,7 +9,7 @@
    forzar que todos reciban lo nuevo.
 ============================================================ */
 
-const CACHE_VERSION = "kairen-v1";
+const CACHE_VERSION = "kairen-v2";
 const CACHE_NAME = `kairen-cache-${CACHE_VERSION}`;
 
 // Al instalar, no bloqueamos nada; activamos de inmediato.
@@ -67,6 +67,35 @@ self.addEventListener("fetch", (event) => {
         return resp;
       }).catch(() => cacheado);
       return cacheado || red;
+    })
+  );
+});
+
+/* ---------- Notificaciones push ---------- */
+self.addEventListener("push", (event) => {
+  let datos = { title: "Kairen 🔔", body: "Tienes una notificación" };
+  try{
+    if(event.data){ datos = event.data.json(); }
+  }catch(e){ /* usa el default */ }
+
+  event.waitUntil(
+    self.registration.showNotification(datos.title || "Kairen 🔔", {
+      body: datos.body || "",
+      icon: "icons/icon-192.png",
+      badge: "icons/icon-192.png",
+      tag: "kairen-notif"
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((lista) => {
+      for(const c of lista){
+        if("focus" in c){ return c.focus(); }
+      }
+      if(clients.openWindow){ return clients.openWindow("./index.html"); }
     })
   );
 });

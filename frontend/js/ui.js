@@ -162,6 +162,7 @@ function mostrarSeccion(seccion){
     // Agenda: pinta el botón de suscripción al calendario.
     if(destino.seccion === "Funciones" && typeof actualizarBotonCalendario === "function"){
         actualizarBotonCalendario();
+        if(typeof actualizarBotonPush === "function"){ actualizarBotonPush(); }
     }
 
     // Bot: panel de configuración/estado bajo demanda.

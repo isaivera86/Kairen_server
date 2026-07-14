@@ -2311,6 +2311,126 @@ app.get("/api/calendario/:token", (req, res) => {
 
 
 /* ============================================================
+   NOTIFICACIONES PUSH (resumen semanal + prueba)
+   Kairen (24/7 en Railway) manda el push. No usa el bot.
+   Si web-push no está instalado, todo lo demás sigue igual.
+============================================================ */
+
+let webpush = null;
+try { webpush = require("web-push"); }
+catch(e){ console.log("ℹ️ web-push no instalado — push en pausa (npm install web-push)"); }
+
+const VAPID_PUBLIC = process.env.VAPID_PUBLIC || "BCW9IS99D0mcR6tO3teBbLNWpdLlTUKeZDJHNDtkAmmQmGZm0bE8PDuSp1iHPd8JFphUCPavTIRHLT8qybPZLNU";
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE || "iqGm5OM7mgprefM5hZc2fSc30_Oaw20T5AdsqALVZ1g";
+
+if(webpush){
+  try{
+    webpush.setVapidDetails("mailto:kairen@re5iliart.com", VAPID_PUBLIC, VAPID_PRIVATE);
+  }catch(e){ console.log("VAPID mal configurado:", e.message); }
+}
+
+// El navegador pide la llave pública para suscribirse
+app.get("/api/push/vapid", (req, res) => {
+  res.json({ publicKey: VAPID_PUBLIC });
+});
+
+// Guardar una suscripción del teléfono
+app.post("/api/push/subscribe", (req, res) => {
+  const sub = req.body && req.body.subscription;
+  if(!sub || !sub.endpoint){ return res.status(400).json({ mensaje: "Suscripción inválida" }); }
+  const db = leerDB();
+  db.pushSubs = db.pushSubs || [];
+  if(!db.pushSubs.find(s => s.endpoint === sub.endpoint)){
+    db.pushSubs.push(sub);
+    guardarDB(db);
+  }
+  res.json({ mensaje: "ok" });
+});
+
+// Enviar push a todas las suscripciones (borra las que ya no sirven)
+async function enviarPushATodos(titulo, cuerpo){
+  if(!webpush){ return { enviados: 0, error: "web-push no instalado" }; }
+  const db = leerDB();
+  db.pushSubs = db.pushSubs || [];
+  const payload = JSON.stringify({ title: titulo, body: cuerpo });
+  let enviados = 0;
+  const vivas = [];
+  for(const sub of db.pushSubs){
+    try{
+      await webpush.sendNotification(sub, payload);
+      enviados++;
+      vivas.push(sub);
+    }catch(err){
+      // 404/410 = suscripción muerta -> se descarta; otros errores la conservan
+      if(!(err && (err.statusCode === 404 || err.statusCode === 410))){
+        vivas.push(sub);
+      }
+    }
+  }
+  db.pushSubs = vivas;
+  guardarDB(db);
+  return { enviados };
+}
+
+// Botón de prueba
+app.post("/api/push/test", async (req, res) => {
+  const r = await enviarPushATodos("Kairen 🔔", "¡Notificaciones activadas! Aquí llegarán tus recordatorios 💜");
+  res.json(r);
+});
+
+// Construye el texto del resumen de la semana (próximos 7 días)
+function construirResumenSemanal(db){
+  const hoy = new Date();
+  const en7 = new Date();
+  en7.setDate(en7.getDate() + 7);
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const desde = iso(hoy), hasta = iso(en7);
+
+  const items = [];
+  (db.eventos || []).forEach(ev => {
+    if(ev.activo === false){ return; }
+    (ev.funciones || []).forEach(fn => {
+      if(fn.activa === false || !fn.fecha){ return; }
+      if(fn.fecha >= desde && fn.fecha <= hasta){
+        items.push({ fecha: fn.fecha, hora: fn.hora || "", nombre: ev.nombre || "Compromiso" });
+      }
+    });
+  });
+  items.sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+
+  if(!items.length){ return "Esta semana no tienes compromisos agendados 🌿"; }
+  return items.map(i => `• ${i.fecha} ${i.hora} — ${i.nombre}`).join("\n");
+}
+
+// Vigilante: cada minuto revisa si es domingo 20:00 (hora CDMX)
+let ultimoResumenEnviado = "";
+function partesFechaMx(){
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Mexico_City", weekday: "short",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit"
+  });
+  const p = {};
+  for(const parte of fmt.formatToParts(new Date())){ p[parte.type] = parte.value; }
+  return p;
+}
+
+setInterval(async () => {
+  if(!webpush){ return; }
+  const p = partesFechaMx();
+  const hoyClave = `${p.year}-${p.month}-${p.day}`;
+  // Domingo 20:00
+  if(p.weekday === "Sun" && p.hour === "20" && p.minute === "00" && ultimoResumenEnviado !== hoyClave){
+    ultimoResumenEnviado = hoyClave;
+    const db = leerDB();
+    const resumen = construirResumenSemanal(db);
+    await enviarPushATodos("📅 Tu semana en Kairen", resumen);
+    console.log("🔔 Resumen semanal enviado.");
+  }
+}, 60000);
+
+
+/* ============================================================
    ALPHA v1.14: CATÁLOGO DE TIPOS DE REGISTRO (editable)
 
    Los tipos operativos viven en db.tiposRegistro. "funcion"
