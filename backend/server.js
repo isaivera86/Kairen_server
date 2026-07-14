@@ -2213,6 +2213,104 @@ app.post("/api/validar/sync", (req, res) => {
 
 
 /* ============================================================
+   AGENDA -> CALENDARIO SUSCRIBIBLE (.ics)
+   El iPhone (u otro) se suscribe una vez y jala los compromisos
+   automáticamente. Cada evento trae una alarma "1 día antes".
+   URL protegida por token: /api/calendario/<token>
+============================================================ */
+
+const CAL_TOKEN = process.env.CAL_TOKEN || "dory2026";
+const CAL_ICONOS = {
+  activacion: "📍", clase: "🎓", ensayo: "🎤", grabacion: "🎬",
+  especial: "🎪", traslado: "🚚", mantenimiento: "🛠️", funcion: "🎭"
+};
+
+function icsEscape(txt){
+  return String(txt || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\r?\n/g, "\\n");
+}
+
+// "2026-09-20" + "20:00" -> "20260920T200000" (hora local flotante)
+function icsFecha(fecha, hora){
+  const f = String(fecha || "").replace(/-/g, "");
+  let h = String(hora || "00:00").replace(/[^0-9:]/g, "");
+  const partes = h.split(":");
+  const hh = (partes[0] || "00").padStart(2, "0");
+  const mm = (partes[1] || "00").padStart(2, "0");
+  return `${f}T${hh}${mm}00`;
+}
+
+function icsSumaHoras(fecha, hora, horas){
+  try{
+    const [a, m, d] = String(fecha).split("-").map(n => parseInt(n, 10));
+    const [hh, mm] = String(hora || "00:00").split(":").map(n => parseInt(n, 10));
+    const dt = new Date(a, m - 1, d, hh || 0, mm || 0);
+    dt.setHours(dt.getHours() + horas);
+    const p = (n) => String(n).padStart(2, "0");
+    return `${dt.getFullYear()}${p(dt.getMonth() + 1)}${p(dt.getDate())}T${p(dt.getHours())}${p(dt.getMinutes())}00`;
+  }catch(e){ return icsFecha(fecha, hora); }
+}
+
+app.get("/api/calendario/:token", (req, res) => {
+  if(String(req.params.token) !== String(CAL_TOKEN)){
+    return res.status(403).send("Token inválido");
+  }
+  const db = leerDB();
+  const ahora = new Date();
+  const stamp = `${ahora.getUTCFullYear()}${String(ahora.getUTCMonth()+1).padStart(2,"0")}${String(ahora.getUTCDate()).padStart(2,"0")}T${String(ahora.getUTCHours()).padStart(2,"0")}${String(ahora.getUTCMinutes()).padStart(2,"0")}00Z`;
+
+  let ics = "";
+  ics += "BEGIN:VCALENDAR\r\n";
+  ics += "VERSION:2.0\r\n";
+  ics += "PRODID:-//Kairen//Agenda//ES\r\n";
+  ics += "CALSCALE:GREGORIAN\r\n";
+  ics += "METHOD:PUBLISH\r\n";
+  ics += "X-WR-CALNAME:Agenda Kairen\r\n";
+  ics += "NAME:Agenda Kairen\r\n";
+  ics += "X-WR-TIMEZONE:America/Mexico_City\r\n";
+  ics += "REFRESH-INTERVAL;VALUE=DURATION:PT1H\r\n";
+  ics += "X-PUBLISHED-TTL:PT1H\r\n";
+
+  (db.eventos || []).forEach(ev => {
+    if(ev.activo === false){ return; }
+    (ev.funciones || []).forEach(fn => {
+      if(fn.activa === false){ return; }
+      if(!fn.fecha){ return; }
+      const tipo = fn.tipoRegistro || ev.tipoRegistro || "funcion";
+      const icono = CAL_ICONOS[tipo] || "📌";
+      const titulo = `${icono} ${ev.nombre || "Compromiso"}`;
+      const uid = `kairen-${ev.id}-${fn.id}@kairen`;
+
+      ics += "BEGIN:VEVENT\r\n";
+      ics += `UID:${uid}\r\n`;
+      ics += `DTSTAMP:${stamp}\r\n`;
+      ics += `DTSTART:${icsFecha(fn.fecha, fn.hora)}\r\n`;
+      ics += `DTEND:${icsSumaHoras(fn.fecha, fn.hora, 2)}\r\n`;
+      ics += `SUMMARY:${icsEscape(titulo)}\r\n`;
+      if(ev.lugar){ ics += `LOCATION:${icsEscape(ev.lugar)}\r\n`; }
+      if(fn.notas || ev.notas){ ics += `DESCRIPTION:${icsEscape(fn.notas || ev.notas)}\r\n`; }
+      // Alarma 1 día antes
+      ics += "BEGIN:VALARM\r\n";
+      ics += "ACTION:DISPLAY\r\n";
+      ics += `DESCRIPTION:${icsEscape("Mañana: " + (ev.nombre || "compromiso"))}\r\n`;
+      ics += "TRIGGER:-P1D\r\n";
+      ics += "END:VALARM\r\n";
+      ics += "END:VEVENT\r\n";
+    });
+  });
+
+  ics += "END:VCALENDAR\r\n";
+
+  res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+  res.setHeader("Content-Disposition", 'inline; filename="agenda.ics"');
+  res.send(ics);
+});
+
+
+/* ============================================================
    ALPHA v1.14: CATÁLOGO DE TIPOS DE REGISTRO (editable)
 
    Los tipos operativos viven en db.tiposRegistro. "funcion"
