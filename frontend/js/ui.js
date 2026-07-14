@@ -159,6 +159,11 @@ function mostrarSeccion(seccion){
         renderPanelValidar();
     }
 
+    // Agenda: pinta el botón de suscripción al calendario.
+    if(destino.seccion === "Funciones" && typeof actualizarBotonCalendario === "function"){
+        actualizarBotonCalendario();
+    }
+
     // Bot: panel de configuración/estado bajo demanda.
     if(destino.seccion === "Bot" && typeof renderPanelBot === "function"){
         renderPanelBot();
