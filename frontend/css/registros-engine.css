@@ -2150,3 +2150,56 @@ body.modal-abierto{ overflow:hidden !important; overscroll-behavior:none; }
 
 /* Botón nuevo escaneo dentro del resultado */
 .res-nuevo{ margin-top:16px; width:100%; max-width:280px; }
+
+/* ============================================================
+   REPASO RESPONSIVO — iPhone / teléfono vertical
+   (afinamiento de los módulos nuevos: validador, tablas,
+    buscador de reservas, dirección por evento)
+============================================================ */
+@media (max-width: 480px){
+
+    /* iOS: inputs a 16px para que Safari NO haga zoom al enfocarlos */
+    .reservas-buscar,
+    .validar-manual input,
+    .validar-config select,
+    .bot-evento-dir textarea{
+        font-size: 16px;
+    }
+
+    /* Validador: acciones apiladas y a todo lo ancho */
+    .validar-acciones{ flex-direction: column; }
+    .validar-acciones .btn-secundario{ width: 100%; min-width: 0; }
+
+    /* Validador: campo manual apilado */
+    .validar-manual{ flex-direction: column; }
+    .validar-manual input,
+    .validar-manual .btn-primario{ width: 100%; }
+
+    /* Validador: cámara y botón a todo lo ancho */
+    #qrLector{ max-width: 100%; }
+    .validar-scanner-box .btn-primario{ max-width: 100%; }
+    .res-nuevo{ max-width: 100%; }
+
+    /* Resultado un poco más compacto */
+    .validar-resultado:not(:empty){ padding: 20px 14px; }
+    .validar-resultado .res-icono{ font-size: 2.3rem; }
+    .validar-resultado .res-titulo{ font-size: 1.15rem; }
+
+    /* Modal tabla de ventas: cabe en pantalla y hace scroll */
+    .modal-tabla-ventas{ width: 96%; max-height: 90vh; overflow: auto; }
+    .tabla-ventas th, .tabla-ventas td{ padding: 8px 8px; font-size: .8rem; }
+    .tabla-ventas-totales{ justify-content: space-between; gap: 8px; font-size: .88rem; }
+
+    /* Dirección por evento: textarea cómoda */
+    .bot-evento-dir textarea{ min-height: 60px; }
+
+    /* Botones mini no tan pegados en las tarjetas de función */
+    .btn-mini{ padding: 8px 12px; }
+}
+
+/* Tablet (vertical/horizontal): tabla de ventas más aireada */
+@media (min-width: 481px) and (max-width: 1024px){
+    .modal-tabla-ventas{ max-width: 90%; }
+    .validar-scanner-box .btn-primario,
+    #qrLector{ max-width: 360px; }
+}
