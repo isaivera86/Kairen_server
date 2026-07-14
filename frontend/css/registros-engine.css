@@ -2098,3 +2098,11 @@ body.modal-abierto{ overflow:hidden !important; overscroll-behavior:none; }
 /* ---- Dirección por evento (panel Bot) ---- */
 .bot-evento-dir{ margin:-4px 0 14px 0; padding:0 4px; }
 .bot-evento-dir textarea{ width:100%; margin-bottom:6px; }
+
+/* ---- Buscador de reservas ---- */
+.reservas-buscar{
+    width:100%; padding:12px 16px; margin-bottom:14px;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+    border-radius:12px; color:inherit; font-size:.9rem;
+}
+.reservas-buscar:focus{ outline:none; border-color:#4f46e5; }

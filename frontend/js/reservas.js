@@ -6,6 +6,12 @@
 
 let RESERVAS_CACHE = [];
 let RESERVAS_FILTRO = "todas";
+let RESERVAS_BUSQUEDA = "";
+
+function buscarReservas(texto){
+    RESERVAS_BUSQUEDA = String(texto || "").toLowerCase().trim();
+    pintarReservas();
+}
 
 const R_DIAS = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 const R_MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
@@ -64,8 +70,18 @@ function pintarReservas(){
         lista = lista.filter(r => esCancelada(r.status));
     }
 
+    if(RESERVAS_BUSQUEDA){
+        const q = RESERVAS_BUSQUEDA;
+        lista = lista.filter(r =>
+            String(r.folio || "").toLowerCase().includes(q) ||
+            String(r.nombre || "").toLowerCase().includes(q) ||
+            String(r.telefono || "").toLowerCase().includes(q) ||
+            String(r.evento || r.funcion || "").toLowerCase().includes(q)
+        );
+    }
+
     if(!lista.length){
-        cont.innerHTML = `<p class="caja-vacio">No hay reservas aquí.</p>`;
+        cont.innerHTML = `<p class="caja-vacio">No hay reservas que coincidan.</p>`;
         return;
     }
 

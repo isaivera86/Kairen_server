@@ -560,6 +560,10 @@
                     <button class="btn-peligro" onclick="vaciarReservas()">🧹 Vaciar todo</button>
                 </div>
 
+                <input id="reservasBuscar" class="reservas-buscar" type="search"
+                    placeholder="🔎 Buscar por folio, nombre, teléfono o evento..."
+                    oninput="buscarReservas(this.value)">
+
                 <div class="reservas-filtros">
                     <button class="reservas-filtro active" data-filtro="todas" onclick="filtrarReservas('todas', this)">Todas</button>
                     <button class="reservas-filtro" data-filtro="pendientes" onclick="filtrarReservas('pendientes', this)">Por confirmar</button>
