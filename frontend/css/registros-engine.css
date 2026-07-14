@@ -2147,3 +2147,6 @@ body.modal-abierto{ overflow:hidden !important; overscroll-behavior:none; }
 .validar-contador{ text-align:center; font-size:.82rem; opacity:.7; margin-top:8px; }
 
 .menu-item#menuValidar{ /* hereda estilo normal */ }
+
+/* Botón nuevo escaneo dentro del resultado */
+.res-nuevo{ margin-top:16px; width:100%; max-width:280px; }

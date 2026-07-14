@@ -260,7 +260,18 @@ function mostrarResultadoValidar(res){
     }
 
     el.className = `validar-resultado ${clase}`;
-    el.innerHTML = `<div class="res-icono">${icono}</div><div class="res-titulo">${titulo}</div><div class="res-detalle">${escaparTexto(detalle)}</div>`;
+    el.innerHTML = `<div class="res-icono">${icono}</div><div class="res-titulo">${titulo}</div><div class="res-detalle">${escaparTexto(detalle)}</div>` +
+        `<button class="btn-primario res-nuevo" onclick="nuevoEscaneo()">🔄 Nuevo escaneo</button>`;
+}
+
+// Limpia el resultado y prepara el siguiente escaneo
+function nuevoEscaneo(){
+    const el = document.getElementById("validarResultado");
+    if(el){ el.className = "validar-resultado"; el.innerHTML = ""; }
+    ultimoCodigo = "";
+    ultimoCodigoTs = 0;
+    const inp = document.getElementById("validarManual");
+    if(inp){ inp.value = ""; inp.focus(); }
 }
 
 function formatearCuando(iso){
