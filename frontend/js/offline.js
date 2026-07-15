@@ -1,0 +1,158 @@
+/* ============================================================
+   COLA OFFLINE
+   Si creas un registro/evento SIN internet, se guarda en el
+   teléfono (IndexedDB) y se sube solo al reconectar (o con el
+   botón "Subir"). Muestra una barra con los pendientes.
+============================================================ */
+
+const OFF_DB_NOMBRE = "kairenOffline";
+let offDb = null;
+
+function offAbrir(){
+    return new Promise((resolve, reject) => {
+        const r = indexedDB.open(OFF_DB_NOMBRE, 1);
+        r.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if(!db.objectStoreNames.contains("cola")){
+                db.createObjectStore("cola", { keyPath: "id" });
+            }
+        };
+        r.onsuccess = (e) => { offDb = e.target.result; resolve(offDb); };
+        r.onerror = (e) => reject(e);
+    });
+}
+
+async function offGuardar(item){
+    if(!offDb){ try{ await offAbrir(); }catch(e){ return; } }
+    return new Promise((resolve) => {
+        const tx = offDb.transaction("cola", "readwrite");
+        tx.objectStore("cola").put(item);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+    });
+}
+
+async function offListar(){
+    if(!offDb){ try{ await offAbrir(); }catch(e){ return []; } }
+    return new Promise((resolve) => {
+        const tx = offDb.transaction("cola", "readonly");
+        const rq = tx.objectStore("cola").getAll();
+        rq.onsuccess = () => resolve(rq.result || []);
+        rq.onerror = () => resolve([]);
+    });
+}
+
+async function offBorrar(id){
+    if(!offDb){ try{ await offAbrir(); }catch(e){ return; } }
+    return new Promise((resolve) => {
+        const tx = offDb.transaction("cola", "readwrite");
+        tx.objectStore("cola").delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+    });
+}
+
+// Encola una creación pendiente
+async function encolarCreacion(url, body, resumen){
+    const item = {
+        id: "off_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+        url, body, resumen,
+        ts: new Date().toISOString()
+    };
+    await offGuardar(item);
+    actualizarBarraPendientes();
+    return item;
+}
+
+/* Intenta crear online; si no hay red o falla, lo encola.
+   Devuelve { ok, online } */
+async function crearConCola(url, body, resumen){
+    if(navigator.onLine){
+        try{
+            const r = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+            if(!r.ok){ throw new Error("no ok"); }
+            const data = await r.json().catch(() => ({}));
+            return { ok: true, online: true, data };
+        }catch(e){ /* cae a la cola */ }
+    }
+    await encolarCreacion(url, body, resumen);
+    return { ok: true, online: false };
+}
+
+/* Sube todo lo pendiente */
+async function sincronizarCola(silencioso){
+    if(!navigator.onLine){
+        if(!silencioso && typeof mostrarToast === "function"){
+            mostrarToast("Sin internet para subir", "warning");
+        }
+        return;
+    }
+    const items = await offListar();
+    if(!items.length){
+        if(!silencioso && typeof mostrarToast === "function"){
+            mostrarToast("No hay pendientes ✅", "success");
+        }
+        return;
+    }
+    let subidos = 0;
+    for(const it of items){
+        try{
+            const r = await fetch(it.url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(it.body)
+            });
+            if(r.ok){ await offBorrar(it.id); subidos++; }
+        }catch(e){ /* se queda para el próximo intento */ }
+    }
+    actualizarBarraPendientes();
+    if(subidos && typeof mostrarToast === "function"){
+        mostrarToast(`⬆️ ${subidos} pendiente(s) subido(s)`, "success");
+    }
+    if(subidos){
+        if(typeof cargarEventos === "function"){ try{ cargarEventos(); }catch(e){} }
+        if(typeof cargarAgenda === "function"){ try{ cargarAgenda(); }catch(e){} }
+        if(typeof renderAgenda === "function"){ try{ renderAgenda(); }catch(e){} }
+    }
+}
+
+/* Barra flotante con el conteo de pendientes */
+async function actualizarBarraPendientes(){
+    const items = await offListar();
+    let barra = document.getElementById("barraPendientes");
+
+    if(!items.length){
+        if(barra){ barra.remove(); }
+        return;
+    }
+    if(!barra){
+        barra = document.createElement("div");
+        barra.id = "barraPendientes";
+        barra.className = "barra-pendientes";
+        document.body.appendChild(barra);
+    }
+    const online = navigator.onLine;
+    barra.innerHTML = `
+        <span>⏳ ${items.length} sin subir</span>
+        <button onclick="sincronizarCola()" ${online ? "" : "disabled"}>
+            ${online ? "Subir ahora" : "Sin internet"}
+        </button>
+    `;
+}
+
+/* Al reconectar, sube solo */
+window.addEventListener("online", () => {
+    actualizarBarraPendientes();
+    sincronizarCola(true);
+});
+window.addEventListener("offline", () => {
+    actualizarBarraPendientes();
+});
+window.addEventListener("load", () => {
+    actualizarBarraPendientes();
+    if(navigator.onLine){ sincronizarCola(true); }
+});

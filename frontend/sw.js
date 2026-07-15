@@ -9,7 +9,7 @@
    forzar que todos reciban lo nuevo.
 ============================================================ */
 
-const CACHE_VERSION = "kairen-v8";
+const CACHE_VERSION = "kairen-v9";
 const CACHE_NAME = `kairen-cache-${CACHE_VERSION}`;
 
 // Archivos esenciales que se guardan al instalar (para funcionar offline)
@@ -50,6 +50,7 @@ const PRECACHE = [
   "js/validar.js",
   "js/calendario.js",
   "js/push.js",
+  "js/offline.js",
   "js/modales.js",
   "js/app.js",
   "js/mobile-menu.js",

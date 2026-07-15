@@ -480,32 +480,28 @@ async function guardarRegistroGenerico(){
         return;
     }
 
-    const respuesta =
-        await fetch(`${API_URL}/api/registros`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                tipoRegistro: tipo,
-                nombre,
-                lugar,
-                fecha,
-                hora,
-                contacto,
-                telefono,
-                notas,
-                recurrencia
-            })
-        });
+    const resumenOff = `${tipo}: ${nombre}`;
+    const envio =
+        await crearConCola(`${API_URL}/api/registros`, {
+            tipoRegistro: tipo,
+            nombre,
+            lugar,
+            fecha,
+            hora,
+            contacto,
+            telefono,
+            notas,
+            recurrencia
+        }, resumenOff);
 
-    const resultado =
-        await respuesta.json();
-
-    if(!respuesta.ok){
-        mostrarToast(resultado.mensaje || "No se pudo guardar", "error");
+    // Guardado sin conexión: se subirá al reconectar
+    if(!envio.online){
+        mostrarToast("Guardado sin conexión ⏳ (se subirá al reconectar)", "success");
+        cerrarModalRegistroGenerico();
         return;
     }
+
+    const resultado = envio.data || {};
 
     cerrarModalRegistroGenerico();
 

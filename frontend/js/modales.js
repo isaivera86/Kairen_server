@@ -137,17 +137,15 @@ async function crearEvento(boton){
         }
     };
 
-    const respuesta = await fetch(`${API_URL}/api/eventos`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(evento)
-    });
+    const envioEv =
+        await crearConCola(`${API_URL}/api/eventos`, evento, `Evento: ${evento.nombre}`);
 
-    const resultado = await respuesta.json();
-
-     mostrarToast(resultado.mensaje, "success");
+    if(!envioEv.online){
+        mostrarToast("Evento guardado sin conexión ⏳ (se subirá al reconectar)", "success");
+    } else {
+        const resultado = envioEv.data || {};
+        mostrarToast(resultado.mensaje || "Evento creado", "success");
+    }
 
     document.getElementById("nombre").value = "";
     document.getElementById("lugar").value = "";
