@@ -9,7 +9,7 @@
    forzar que todos reciban lo nuevo.
 ============================================================ */
 
-const CACHE_VERSION = "kairen-v6";
+const CACHE_VERSION = "kairen-v7";
 const CACHE_NAME = `kairen-cache-${CACHE_VERSION}`;
 
 // Al instalar, no bloqueamos nada; activamos de inmediato.
@@ -39,19 +39,30 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
 
+  // Solo manejamos peticiones de NUESTRO origen. Las de otros dominios
+  // (CDN, push, etc.) las dejamos pasar directo al navegador.
+  if(url.origin !== self.location.origin){ return; }
+
   // API y HTML -> RED PRIMERO (nunca versiones viejas de datos/página)
   if(esHTML(req) || url.pathname.startsWith("/api/")){
     event.respondWith(
       fetch(req)
         .then((resp) => {
-          // Guarda copia del HTML por si luego no hay red
-          if(esHTML(req)){
+          if(esHTML(req) && resp && resp.ok){
             const copia = resp.clone();
             caches.open(CACHE_NAME).then((c) => c.put(req, copia));
           }
           return resp;
         })
-        .catch(() => caches.match(req).then((r) => r || caches.match("./index.html")))
+        .catch(async () => {
+          const cache = await caches.match(req);
+          if(cache){ return cache; }
+          if(esHTML(req)){
+            const idx = await caches.match("./index.html");
+            if(idx){ return idx; }
+          }
+          return new Response("", { status: 504, statusText: "Sin conexion" });
+        })
     );
     return;
   }
@@ -59,14 +70,24 @@ self.addEventListener("fetch", (event) => {
   // Recursos (css/js/img) -> CACHÉ PRIMERO + actualiza en segundo plano
   event.respondWith(
     caches.match(req).then((cacheado) => {
-      const red = fetch(req).then((resp) => {
+      if(cacheado){
+        // Refresca en segundo plano sin bloquear
+        fetch(req).then((resp) => {
+          if(resp && resp.status === 200){
+            const copia = resp.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(req, copia));
+          }
+        }).catch(() => {});
+        return cacheado;
+      }
+      // No estaba en caché: ve a la red y guarda
+      return fetch(req).then((resp) => {
         if(resp && resp.status === 200){
           const copia = resp.clone();
           caches.open(CACHE_NAME).then((c) => c.put(req, copia));
         }
         return resp;
-      }).catch(() => cacheado);
-      return cacheado || red;
+      }).catch(() => new Response("", { status: 504, statusText: "Sin conexion" }));
     })
   );
 });
