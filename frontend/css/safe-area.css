@@ -47,10 +47,23 @@ html, body{
 @media (max-width: 768px), (max-width: 1024px) and (orientation: portrait){
     @supports (padding: max(0px)){
         .main{
-            padding-top: calc(env(safe-area-inset-top) + 58px) !important;
+            padding-top: calc(env(safe-area-inset-top) + 64px) !important;
             padding-left: max(10px, env(safe-area-inset-left)) !important;
             padding-right: max(10px, env(safe-area-inset-right)) !important;
             padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
         }
+    }
+
+    /* Deja un hueco a la IZQUIERDA para que el botón ☰ (arriba-izq)
+       no tape el título/saludo de la primera pantalla. */
+    .topbar{
+        padding-left: 58px !important;
+    }
+    .hoy-header,
+    .agenda-header,
+    #seccionValidar .panel-header,
+    #seccionReservas .panel-header,
+    #seccionBot .panel-header{
+        padding-left: 52px !important;
     }
 }
