@@ -9,12 +9,68 @@
    forzar que todos reciban lo nuevo.
 ============================================================ */
 
-const CACHE_VERSION = "kairen-v7";
+const CACHE_VERSION = "kairen-v8";
 const CACHE_NAME = `kairen-cache-${CACHE_VERSION}`;
 
-// Al instalar, no bloqueamos nada; activamos de inmediato.
+// Archivos esenciales que se guardan al instalar (para funcionar offline)
+const PRECACHE = [
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "css/base.css",
+  "css/layout.css",
+  "css/componentes.css",
+  "css/dashboard.css",
+  "css/eventos.css",
+  "css/agenda.css",
+  "css/alpha-v1-1-operaciones.css",
+  "css/alpha-v1-2-nuevo-registro.css",
+  "css/funciones.css",
+  "css/modales.css",
+  "css/responsive.css",
+  "css/theme-dark-premium.css",
+  "css/ui-premium.css",
+  "css/sidebar-header-compact.css",
+  "css/mobile-real-drawer-compact.css",
+  "css/registros-engine.css",
+  "css/safe-area.css",
+  "js/state.js",
+  "js/dashboard.js",
+  "js/agenda.js",
+  "js/registros.js",
+  "js/utils.js",
+  "js/ui.js",
+  "js/configuracion.js",
+  "js/descuentos.js",
+  "js/funciones.js",
+  "js/eventos.js",
+  "js/caja.js",
+  "js/bot.js",
+  "js/reservas.js",
+  "js/validar.js",
+  "js/calendario.js",
+  "js/push.js",
+  "js/modales.js",
+  "js/app.js",
+  "js/mobile-menu.js",
+  "js/sidebar-controls.js",
+  "icons/icon-192.png",
+  "icons/icon-512.png",
+  "icons/apple-touch-icon.png"
+];
+
+// Al instalar: guarda los archivos esenciales (uno por uno, sin romper si
+// alguno falla) y activa de inmediato.
 self.addEventListener("install", (event) => {
-  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        PRECACHE.map((url) =>
+          cache.add(url).catch(() => { /* si alguno falla, seguimos */ })
+        )
+      )
+    ).then(() => self.skipWaiting())
+  );
 });
 
 // Al activar, borra cachés viejos de versiones anteriores.
