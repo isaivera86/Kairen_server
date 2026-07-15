@@ -18,6 +18,53 @@
 
 
 /* ============================================================
+   FILTRO POR TIPO (funciones, activaciones, ensayos, etc.)
+============================================================ */
+const TIPO_ETIQUETAS = {
+    funcion:       "🎭 Funciones",
+    activacion:    "📍 Activaciones",
+    clase:         "🎓 Clases",
+    ensayo:        "🎤 Ensayos",
+    grabacion:     "🎬 Grabaciones",
+    especial:      "🎪 Especiales",
+    traslado:      "🚚 Traslados",
+    mantenimiento: "🛠️ Mantenimiento"
+};
+
+function etiquetaTipo(tipo){
+    if(TIPO_ETIQUETAS[tipo]){ return TIPO_ETIQUETAS[tipo]; }
+    return "📌 " + tipo.charAt(0).toUpperCase() + tipo.slice(1);
+}
+
+function poblarFiltroTipos(eventos){
+    const sel = document.getElementById("filtroTipoEventos");
+    if(!sel){ return; }
+
+    const valorActual = sel.value || "funcion";
+
+    const tipos = new Set();
+    (eventos || []).forEach(ev => tipos.add(ev.tipoRegistro || "funcion"));
+
+    const lista = Array.from(tipos).sort((a, b) => {
+        if(a === "funcion"){ return -1; }
+        if(b === "funcion"){ return 1; }
+        return a.localeCompare(b);
+    });
+
+    let html = "";
+    lista.forEach(t => {
+        html += `<option value="${t}">${etiquetaTipo(t)}</option>`;
+    });
+    html += `<option value="todos">📋 Todos los tipos</option>`;
+    sel.innerHTML = html;
+
+    if(Array.from(sel.options).some(o => o.value === valorActual)){
+        sel.value = valorActual;
+    }
+}
+
+
+/* ============================================================
    CARGAR EVENTOS
 
    Esta es la función principal del módulo.
@@ -34,6 +81,8 @@ async function cargarEventos(){
 
     eventosActuales =
         eventos;
+
+    poblarFiltroTipos(eventos);
 
     const metricas =
         calcularMetricasEventos(eventos);
@@ -130,15 +179,19 @@ function aplicarFiltrosEventos(eventos){
             .getElementById("ordenEventos")
             ?.value || "recientes";
 
+    const filtroTipo =
+        document
+            .getElementById("filtroTipoEventos")
+            ?.value || "funcion";
+
     let resultado =
         eventos.filter(evento => {
 
-            // La lista de "Eventos disponibles" es SOLO para eventos con
-            // boletaje (tipo función). Las activaciones y demás registros
-            // operativos viven en la Agenda, no aquí. Los eventos viejos
-            // (sin tipoRegistro) cuentan como función.
-            const esEventoBoletaje =
-                (evento.tipoRegistro || "funcion") === "funcion";
+            const tipoEv = evento.tipoRegistro || "funcion";
+
+            // Filtro por tipo: "todos" muestra todo; si no, solo ese tipo.
+            const coincideTipo =
+                filtroTipo === "todos" || tipoEv === filtroTipo;
 
             const coincideTexto =
                 evento.nombre
@@ -159,7 +212,7 @@ function aplicarFiltrosEventos(eventos){
                     evento.activo === false
                 );
 
-            return esEventoBoletaje && coincideTexto && coincideEstado;
+            return coincideTipo && coincideTexto && coincideEstado;
         });
 
     resultado =
