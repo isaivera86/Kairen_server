@@ -9,7 +9,7 @@
    forzar que todos reciban lo nuevo.
 ============================================================ */
 
-const CACHE_VERSION = "kairen-v4";
+const CACHE_VERSION = "kairen-v5";
 const CACHE_NAME = `kairen-cache-${CACHE_VERSION}`;
 
 // Al instalar, no bloqueamos nada; activamos de inmediato.
