@@ -56,14 +56,18 @@ html, body{
 
     /* Deja un hueco a la IZQUIERDA para que el botón ☰ (arriba-izq)
        no tape el título/saludo de la primera pantalla. */
-    .topbar{
-        padding-left: 58px !important;
-    }
+    .topbar,
+    .panel.hoy-header,
     .hoy-header,
     .agenda-header,
     #seccionValidar .panel-header,
     #seccionReservas .panel-header,
     #seccionBot .panel-header{
-        padding-left: 52px !important;
+        padding-left: 64px !important;
+    }
+    /* Refuerzo directo al saludo y su fecha */
+    #hoySaludo,
+    #hoyFecha{
+        padding-left: 0 !important;
     }
 }
