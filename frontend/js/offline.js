@@ -120,6 +120,12 @@ async function sincronizarCola(silencioso){
     }
 }
 
+/* Devuelve los pendientes cuyo URL coincide (para pintarlos en las listas) */
+async function offPendientesPorTipo(fragmentoUrl){
+    const items = await offListar();
+    return items.filter(it => (it.url || "").includes(fragmentoUrl));
+}
+
 /* Barra flotante con el conteo de pendientes */
 async function actualizarBarraPendientes(){
     const items = await offListar();

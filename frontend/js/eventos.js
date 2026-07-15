@@ -305,15 +305,63 @@ function pintarEventosPro(eventos){
                 No hay eventos que coincidan con los filtros.
             </div>
         `;
+        inyectarPendientesEventos();
         return;
     }
 
     if(vistaEventosActual === "tabla"){
         pintarEventosTabla(eventos, contenedor);
+        inyectarPendientesEventos();
         return;
     }
 
     pintarEventosTarjetas(eventos, contenedor);
+    inyectarPendientesEventos();
+}
+
+
+/* Pinta arriba de la lista los eventos creados sin conexión (pendientes) */
+async function inyectarPendientesEventos(){
+    const cont = document.getElementById("listaEventos");
+    if(!cont || typeof offPendientesPorTipo !== "function"){ return; }
+
+    let pend = [];
+    try{ pend = await offPendientesPorTipo("/api/eventos"); }catch(e){ return; }
+    if(!pend.length){ return; }
+
+    const tarjetas = pend
+        .map(p => tarjetaPendienteEvento(p.body || {}))
+        .join("");
+
+    let grid = cont.querySelector(".eventos-grid-pro");
+    if(!grid){
+        // Había empty-state o vista tabla: creamos el grid
+        cont.innerHTML = `<div class="eventos-grid-pro"></div>`;
+        grid = cont.querySelector(".eventos-grid-pro");
+    }
+    grid.insertAdjacentHTML("afterbegin", tarjetas);
+}
+
+function tarjetaPendienteEvento(body){
+    const nombre = escaparTexto(body.nombre || "Evento sin nombre");
+    const lugar = escaparTexto(body.lugar || "Sin lugar");
+    return `
+        <article class="evento-card-pro pendiente-card">
+            <div class="evento-card-pro-placeholder">⏳</div>
+            <div class="evento-card-pro-body">
+                <div class="evento-card-pro-top">
+                    <div>
+                        <h3>${nombre}</h3>
+                        <p class="evento-card-pro-meta">📍 ${lugar}</p>
+                    </div>
+                    <span class="pendiente-badge">⏳ Pendiente</span>
+                </div>
+                <div class="evento-pro-proxima">
+                    Se subirá cuando haya internet.
+                </div>
+            </div>
+        </article>
+    `;
 }
 
 
