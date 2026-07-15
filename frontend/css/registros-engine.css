@@ -2242,19 +2242,31 @@ body.modal-abierto{ overflow:hidden !important; overscroll-behavior:none; }
     margin-bottom: 0 !important;
 }
 
-/* ---- Fecha/Hora en iPhone: idénticos a los demás campos ---- */
-.form-campo input[type="date"],
-.form-campo input[type="time"]{
+/* ---- Fecha/Hora en iPhone: idénticos a los demás campos (GLOBAL) ---- */
+input[type="date"],
+input[type="time"]{
     -webkit-appearance: none;
     appearance: none;
-    min-height: 0;
-    height: auto;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: 48px;
     padding: 12px 14px !important;
-    font-size: 15px;
+    font-size: 15px !important;
     border-radius: 12px;
-    line-height: 1.2;
+    line-height: 1.2 !important;
     box-sizing: border-box;
     color-scheme: dark;
+}
+/* Quita el estirado interno que iOS le pone al contenido del date/time */
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value{
+    min-height: 0;
+    margin: 0;
+    text-align: left;
+}
+input[type="date"]::-webkit-datetime-edit,
+input[type="time"]::-webkit-datetime-edit{
+    padding: 0;
 }
 
 /* ---- Barra de pendientes offline ---- */
