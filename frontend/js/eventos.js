@@ -73,11 +73,36 @@ function poblarFiltroTipos(eventos){
 ============================================================ */
 async function cargarEventos(){
 
-    const respuesta =
-        await fetch(`${API_URL}/api/eventos`);
+    let eventos;
 
-    const eventos =
-        await respuesta.json();
+    try{
+        const respuesta =
+            await fetch(`${API_URL}/api/eventos`);
+
+        if(!respuesta.ok){ throw new Error("respuesta no ok"); }
+
+        eventos = await respuesta.json();
+
+        // Guarda copia local para poder verlos sin internet
+        try{
+            localStorage.setItem(
+                "kairen_cache_eventos",
+                JSON.stringify(eventos)
+            );
+        }catch(e){ /* si no se puede guardar, seguimos */ }
+
+    }catch(e){
+        // Sin conexión: usa la última copia guardada
+        try{
+            const guardado =
+                localStorage.getItem("kairen_cache_eventos");
+            eventos = guardado ? JSON.parse(guardado) : [];
+        }catch(err){ eventos = []; }
+
+        if(typeof mostrarToast === "function"){
+            mostrarToast("Sin conexión: mostrando lo último guardado", "warning");
+        }
+    }
 
     eventosActuales =
         eventos;
