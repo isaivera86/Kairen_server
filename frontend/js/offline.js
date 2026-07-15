@@ -10,7 +10,7 @@ let offDb = null;
 
 function offAbrir(){
     return new Promise((resolve, reject) => {
-        const r = indexedDB.open(OFF_DB_NOMBRE, 2);
+        const r = indexedDB.open(OFF_DB_NOMBRE, 3);
         r.onupgradeneeded = (e) => {
             const db = e.target.result;
             if(!db.objectStoreNames.contains("cola")){
@@ -20,8 +20,30 @@ function offAbrir(){
                 db.createObjectStore("cache", { keyPath: "clave" });
             }
         };
-        r.onsuccess = (e) => { offDb = e.target.result; resolve(offDb); };
+        r.onsuccess = (e) => {
+            offDb = e.target.result;
+            // Si por alguna razón falta el almacén cache, forzamos upgrade
+            if(!offDb.objectStoreNames.contains("cache")){
+                const ver = offDb.version + 1;
+                offDb.close();
+                const r2 = indexedDB.open(OFF_DB_NOMBRE, ver);
+                r2.onupgradeneeded = (ev) => {
+                    const db2 = ev.target.result;
+                    if(!db2.objectStoreNames.contains("cola")){
+                        db2.createObjectStore("cola", { keyPath: "id" });
+                    }
+                    if(!db2.objectStoreNames.contains("cache")){
+                        db2.createObjectStore("cache", { keyPath: "clave" });
+                    }
+                };
+                r2.onsuccess = (ev) => { offDb = ev.target.result; resolve(offDb); };
+                r2.onerror = (ev) => reject(ev);
+                return;
+            }
+            resolve(offDb);
+        };
         r.onerror = (e) => reject(e);
+        r.onblocked = () => { /* otra pestaña la tiene abierta; esperamos */ };
     });
 }
 

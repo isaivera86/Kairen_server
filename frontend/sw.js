@@ -9,7 +9,7 @@
    forzar que todos reciban lo nuevo.
 ============================================================ */
 
-const CACHE_VERSION = "kairen-v14";
+const CACHE_VERSION = "kairen-v15";
 const CACHE_NAME = `kairen-cache-${CACHE_VERSION}`;
 
 // Archivos esenciales que se guardan al instalar (para funcionar offline)
@@ -124,28 +124,22 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Recursos (css/js/img) -> CACHÉ PRIMERO + actualiza en segundo plano
+  // Recursos (css/js/img) -> RED PRIMERO si hay internet (siempre lo más
+  // nuevo), y CACHÉ como respaldo cuando no hay conexión.
   event.respondWith(
-    caches.match(req).then((cacheado) => {
-      if(cacheado){
-        // Refresca en segundo plano sin bloquear
-        fetch(req).then((resp) => {
-          if(resp && resp.status === 200){
-            const copia = resp.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(req, copia));
-          }
-        }).catch(() => {});
-        return cacheado;
-      }
-      // No estaba en caché: ve a la red y guarda
-      return fetch(req).then((resp) => {
+    fetch(req)
+      .then((resp) => {
         if(resp && resp.status === 200){
           const copia = resp.clone();
           caches.open(CACHE_NAME).then((c) => c.put(req, copia));
         }
         return resp;
-      }).catch(() => new Response("", { status: 504, statusText: "Sin conexion" }));
-    })
+      })
+      .catch(async () => {
+        const cache = await caches.match(req);
+        if(cache){ return cache; }
+        return new Response("", { status: 504, statusText: "Sin conexion" });
+      })
   );
 });
 
