@@ -10,15 +10,43 @@ let offDb = null;
 
 function offAbrir(){
     return new Promise((resolve, reject) => {
-        const r = indexedDB.open(OFF_DB_NOMBRE, 1);
+        const r = indexedDB.open(OFF_DB_NOMBRE, 2);
         r.onupgradeneeded = (e) => {
             const db = e.target.result;
             if(!db.objectStoreNames.contains("cola")){
                 db.createObjectStore("cola", { keyPath: "id" });
             }
+            if(!db.objectStoreNames.contains("cache")){
+                db.createObjectStore("cache", { keyPath: "clave" });
+            }
         };
         r.onsuccess = (e) => { offDb = e.target.result; resolve(offDb); };
         r.onerror = (e) => reject(e);
+    });
+}
+
+/* Caché de datos (eventos, etc.) para verlos sin internet */
+async function offCacheGuardar(clave, valor){
+    if(!offDb){ try{ await offAbrir(); }catch(e){ return; } }
+    return new Promise((resolve) => {
+        try{
+            const tx = offDb.transaction("cache", "readwrite");
+            tx.objectStore("cache").put({ clave, valor });
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => resolve();
+        }catch(e){ resolve(); }
+    });
+}
+
+async function offCacheLeer(clave){
+    if(!offDb){ try{ await offAbrir(); }catch(e){ return null; } }
+    return new Promise((resolve) => {
+        try{
+            const tx = offDb.transaction("cache", "readonly");
+            const rq = tx.objectStore("cache").get(clave);
+            rq.onsuccess = () => resolve(rq.result ? rq.result.valor : null);
+            rq.onerror = () => resolve(null);
+        }catch(e){ resolve(null); }
     });
 }
 

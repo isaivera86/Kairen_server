@@ -83,21 +83,20 @@ async function cargarEventos(){
 
         eventos = await respuesta.json();
 
-        // Guarda copia local para poder verlos sin internet
-        try{
-            localStorage.setItem(
-                "kairen_cache_eventos",
-                JSON.stringify(eventos)
-            );
-        }catch(e){ /* si no se puede guardar, seguimos */ }
+        // Guarda copia local (IndexedDB) para verlos sin internet
+        if(typeof offCacheGuardar === "function"){
+            try{ await offCacheGuardar("eventos", eventos); }catch(e){}
+        }
 
     }catch(e){
         // Sin conexión: usa la última copia guardada
-        try{
-            const guardado =
-                localStorage.getItem("kairen_cache_eventos");
-            eventos = guardado ? JSON.parse(guardado) : [];
-        }catch(err){ eventos = []; }
+        eventos = [];
+        if(typeof offCacheLeer === "function"){
+            try{
+                const guardado = await offCacheLeer("eventos");
+                if(Array.isArray(guardado)){ eventos = guardado; }
+            }catch(err){ eventos = []; }
+        }
 
         if(typeof mostrarToast === "function"){
             mostrarToast("Sin conexión: mostrando lo último guardado", "warning");
