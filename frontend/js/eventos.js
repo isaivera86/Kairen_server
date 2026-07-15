@@ -332,6 +332,9 @@ function pintarEventosTarjetas(eventos, contenedor){
 
 function crearTarjetaEventoPro(evento){
 
+    const esBoletaje =
+        (evento.tipoRegistro || "funcion") === "funcion";
+
     const totalFunciones =
         evento.funciones.length;
 
@@ -343,6 +346,32 @@ function crearTarjetaEventoPro(evento){
 
     const proximaFuncion =
         obtenerProximaFuncionEvento(evento);
+
+    const statsHTML = esBoletaje
+        ? `
+            <div class="evento-pro-stat">
+                <strong>${totalFunciones}</strong>
+                <span>Funciones</span>
+            </div>
+            <div class="evento-pro-stat">
+                <strong>${boletos}</strong>
+                <span>Boletos</span>
+            </div>
+            <div class="evento-pro-stat">
+                <strong>${descuentos}</strong>
+                <span>Descuentos</span>
+            </div>
+        `
+        : `
+            <div class="evento-pro-stat">
+                <strong>${totalFunciones}</strong>
+                <span>Fechas</span>
+            </div>
+            <div class="evento-pro-stat">
+                <strong>${etiquetaTipo(evento.tipoRegistro || "funcion").replace(/^[^\s]+\s/, "")}</strong>
+                <span>Tipo</span>
+            </div>
+        `;
 
     return `
         <article class="evento-card-pro">
@@ -369,27 +398,14 @@ function crearTarjetaEventoPro(evento){
                 </div>
 
                 <div class="evento-pro-stats">
-                    <div class="evento-pro-stat">
-                        <strong>${totalFunciones}</strong>
-                        <span>Funciones</span>
-                    </div>
-
-                    <div class="evento-pro-stat">
-                        <strong>${boletos}</strong>
-                        <span>Boletos</span>
-                    </div>
-
-                    <div class="evento-pro-stat">
-                        <strong>${descuentos}</strong>
-                        <span>Descuentos</span>
-                    </div>
+                    ${statsHTML}
                 </div>
 
                 <div class="evento-pro-proxima">
                     ${
                         proximaFuncion
                         ? `📅 Próxima: ${formatearFechaEvento(proximaFuncion.fecha)} · ${escaparTexto(proximaFuncion.hora)}`
-                        : "📅 Sin próximas funciones"
+                        : "📅 Sin próximas fechas"
                     }
                 </div>
 
@@ -397,7 +413,7 @@ function crearTarjetaEventoPro(evento){
                     <button
                         class="btn-secundario"
                         onclick="abrirModalFuncion(${evento.id})">
-                        ➕ Función
+                        ➕ ${esBoletaje ? "Función" : "Fecha"}
                     </button>
 
                     <button
@@ -527,6 +543,9 @@ function crearFuncionesHTML(evento){
 
     let funcionesHTML = "";
 
+    const esBoletaje =
+        (evento.tipoRegistro || "funcion") === "funcion";
+
     evento.funciones.forEach(funcion => {
 
         const categorias =
@@ -571,23 +590,28 @@ function crearFuncionesHTML(evento){
                     </div>
                 </div>
 
+                ${esBoletaje ? `
                 <div class="categorias-grid">
                     ${categoriasHTML}
                 </div>
+                ` : ""}
 
                 <p class="${funcion.activa ? "status-ok" : "status-off"}">
-                    ${funcion.activa ? "🟢 Función activa" : "🔴 Función inactiva"}
+                    ${funcion.activa
+                        ? (esBoletaje ? "🟢 Función activa" : "🟢 Activo")
+                        : (esBoletaje ? "🔴 Función inactiva" : "🔴 Inactivo")}
                 </p>
 
                 <div class="funcion-acciones-premium">
 
                     <button
                         class="btn-secundario"
-                        title="Editar (nombre, lugar, fecha, precios)"
+                        title="Editar"
                         onclick="abrirEditarFuncion(${evento.id}, ${funcion.id})">
                         ✏️ Editar
                     </button>
 
+                    ${esBoletaje ? `
                     <button
                         class="btn-secundario"
                         title="Caja / venta de boletos"
@@ -601,17 +625,18 @@ function crearFuncionesHTML(evento){
                         onclick="abrirGestionDescuentos(${evento.id}, ${funcion.id})">
                         🎁 Descuentos
                     </button>
+                    ` : ""}
 
                     <button
                         class="btn-secundario"
-                        title="${funcion.activa ? "Desactivar función" : "Activar función"}"
+                        title="${funcion.activa ? "Desactivar" : "Activar"}"
                         onclick="toggleFuncion(${evento.id}, ${funcion.id})">
                         ${funcion.activa ? "⏸️ Pausar" : "▶️ Activar"}
                     </button>
 
                     <button
                         class="btn-danger"
-                        title="Eliminar función"
+                        title="Eliminar"
                         onclick="eliminarFuncion(${evento.id}, ${funcion.id})">
                         🗑️ Eliminar
                     </button>
@@ -623,7 +648,7 @@ function crearFuncionesHTML(evento){
 
     return funcionesHTML || `
         <div class="empty-state">
-            Este evento todavía no tiene funciones.
+            Este registro todavía no tiene fechas.
         </div>
     `;
 }
