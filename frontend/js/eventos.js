@@ -648,7 +648,9 @@ function crearFuncionesHTML(evento){
 
     return funcionesHTML || `
         <div class="empty-state">
-            Este registro todavía no tiene fechas.
+            ${esBoletaje
+                ? "Este evento todavía no tiene funciones."
+                : "Aún no hay fechas agregadas."}
         </div>
     `;
 }
