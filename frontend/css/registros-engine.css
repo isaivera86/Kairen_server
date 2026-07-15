@@ -2223,3 +2223,18 @@ body.modal-abierto{ overflow:hidden !important; overscroll-behavior:none; }
 @media (max-width: 480px){
     .cal-suscrito{ flex-direction: column; align-items: stretch; text-align: center; }
 }
+
+/* ---- Campos con etiqueta (fecha/hora en formulario de registro) ---- */
+.form-campo{
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.form-campo label{
+    font-size: .8rem;
+    opacity: .75;
+    padding-left: 2px;
+}
+.form-campo input{
+    width: 100%;
+}
