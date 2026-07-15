@@ -758,19 +758,19 @@
                     id="registroGenericoLugar"
                     placeholder="Lugar o sede">
 
-                <div class="form-campo">
-                    <label for="registroGenericoFecha">📅 Fecha</label>
-                    <input
-                        id="registroGenericoFecha"
-                        type="date">
-                </div>
+                <input
+                    id="registroGenericoFecha"
+                    type="text"
+                    placeholder="Fecha"
+                    onfocus="this.type='date'"
+                    onblur="if(!this.value){this.type='text'}">
 
-                <div class="form-campo">
-                    <label for="registroGenericoHora">⏰ Hora</label>
-                    <input
-                        id="registroGenericoHora"
-                        type="time">
-                </div>
+                <input
+                    id="registroGenericoHora"
+                    type="text"
+                    placeholder="Hora"
+                    onfocus="this.type='time'"
+                    onblur="if(!this.value){this.type='text'}">
 
                 <input
                     id="registroGenericoContacto"
@@ -905,11 +905,17 @@
 
                 <input
                     id="fecha"
-                    type="date">
+                    type="text"
+                    placeholder="Fecha"
+                    onfocus="this.type='date'"
+                    onblur="if(!this.value){this.type='text'}">
 
                 <input
                     id="hora"
-                    type="time">
+                    type="text"
+                    placeholder="Hora"
+                    onfocus="this.type='time'"
+                    onblur="if(!this.value){this.type='text'}">
 
             </div>
 
@@ -1116,11 +1122,17 @@
 
                 <input
                     id="fechaFuncion"
-                    type="date">
+                    type="text"
+                    placeholder="Fecha"
+                    onfocus="this.type='date'"
+                    onblur="if(!this.value){this.type='text'}">
 
                 <input
                     id="horaFuncion"
-                    type="time">
+                    type="text"
+                    placeholder="Hora"
+                    onfocus="this.type='time'"
+                    onblur="if(!this.value){this.type='text'}">
 
             </div>
 
@@ -1279,11 +1291,17 @@
 
                 <input
                     id="editarFecha"
-                    type="date">
+                    type="text"
+                    placeholder="Fecha"
+                    onfocus="this.type='date'"
+                    onblur="if(!this.value){this.type='text'}">
 
                 <input
                     id="editarHora"
-                    type="time">
+                    type="text"
+                    placeholder="Hora"
+                    onfocus="this.type='time'"
+                    onblur="if(!this.value){this.type='text'}">
 
             </div>
 

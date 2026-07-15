@@ -39,6 +39,12 @@ html, body{
     .modal-drawer{
         padding-top: max(16px, calc(env(safe-area-inset-top) + 6px));
     }
+
+    /* Modales premium (crear evento / registro): el contenido con scroll
+       también respeta la barra de estado */
+    .modal-evento-scroll{
+        padding-top: max(16px, calc(env(safe-area-inset-top) + 12px)) !important;
+    }
 }
 
 /* --- SOLO MÓVIL: el contenido baja junto con el botón ☰ ---
