@@ -2325,3 +2325,14 @@ input[type="time"]::-webkit-datetime-edit{
     font-weight: 600;
     white-space: nowrap;
 }
+
+/* ---- Botón "Agregar a mi calendario" en el drawer de la agenda ---- */
+.agenda-cal-fila{
+    margin: 8px 0 4px;
+}
+.btn-cal-evento{
+    background: rgba(79,124,255,.14);
+    border: 1px solid rgba(79,124,255,.4);
+    color: #93b4ff;
+    width: 100%;
+}

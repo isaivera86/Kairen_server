@@ -228,6 +228,8 @@ function abrirAgendaDia(fechaISO, eventoId, funcionId){
             );
         });
 
+    inyectarPendientesAgenda(contenedor, fechaISO);
+
     document.body.classList.add("modal-abierto");
 
     document
@@ -372,6 +374,20 @@ function crearFuncionAgendaCard(evento, funcion, ctx){
         }
     }
 
+    const calBtnHTML =
+        (typeof agregarEventoCalendario === "function")
+        ? `<button class="btn-secundario btn-mini btn-cal-evento"
+               onclick="agregarEventoCalendario('${encodeURIComponent(JSON.stringify({
+                   eventoId: evento.id,
+                   funcionId: funcion.id,
+                   fecha: (ctx && ctx.fecha) || funcion.fecha,
+                   hora: funcion.hora,
+                   nombre: evento.nombre,
+                   lugar: evento.lugar,
+                   notas: funcion.notas || ""
+               }))}')">📅 Agregar a mi calendario</button>`
+        : "";
+
     return `
         <div class="agenda-funcion-card">
             <div class="agenda-funcion-top">
@@ -407,8 +423,49 @@ function crearFuncionAgendaCard(evento, funcion, ctx){
                 ${detalleHTML}
             </div>
 
+            <div class="agenda-cal-fila">
+                ${calBtnHTML}
+            </div>
+
             <div class="agenda-funcion-actions">
                 ${accionesHTML}
+            </div>
+        </div>
+    `;
+}
+
+/* Inyecta los registros pendientes de subir (creados sin conexión) del día */
+async function inyectarPendientesAgenda(contenedor, fechaISO){
+    if(!contenedor || typeof offPendientesPorTipo !== "function"){ return; }
+    let pend = [];
+    try{ pend = await offPendientesPorTipo("/api/registros"); }catch(e){ return; }
+
+    const delDia = pend.filter(p => (p.body && p.body.fecha) === fechaISO);
+    if(!delDia.length){ return; }
+
+    const html = delDia.map(p => tarjetaPendienteAgenda(p.body || {})).join("");
+    contenedor.insertAdjacentHTML("afterbegin", html);
+}
+
+function tarjetaPendienteAgenda(body){
+    const nombre = escaparTexto(body.nombre || "Registro");
+    const lugar = escaparTexto(body.lugar || "Sin lugar");
+    const hora = escaparTexto(body.hora || "");
+    return `
+        <div class="agenda-funcion-card pendiente-card">
+            <div class="agenda-funcion-top">
+                <div>
+                    <h3>⏳ ${nombre}</h3>
+                    <p>📍 ${lugar}</p>
+                </div>
+                <span class="agenda-hora">⏰ ${hora}</span>
+            </div>
+            <span class="pendiente-badge">⏳ Pendiente de subir</span>
+            <div class="agenda-categorias-mini">
+                <div class="agenda-categoria-mini">
+                    <span>Estado</span>
+                    <strong>Se subirá cuando haya internet</strong>
+                </div>
             </div>
         </div>
     `;

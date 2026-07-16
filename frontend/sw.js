@@ -9,7 +9,7 @@
    forzar que todos reciban lo nuevo.
 ============================================================ */
 
-const CACHE_VERSION = "kairen-v18";
+const CACHE_VERSION = "kairen-v19";
 const CACHE_NAME = `kairen-cache-${CACHE_VERSION}`;
 
 // Archivos esenciales que se guardan al instalar (para funcionar offline)
