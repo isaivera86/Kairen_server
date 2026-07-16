@@ -9,7 +9,7 @@
    forzar que todos reciban lo nuevo.
 ============================================================ */
 
-const CACHE_VERSION = "kairen-v17";
+const CACHE_VERSION = "kairen-v18";
 const CACHE_NAME = `kairen-cache-${CACHE_VERSION}`;
 
 // Archivos esenciales que se guardan al instalar (para funcionar offline)
@@ -57,7 +57,10 @@ const PRECACHE = [
   "js/sidebar-controls.js",
   "icons/icon-192.png",
   "icons/icon-512.png",
-  "icons/apple-touch-icon.png"
+  "icons/apple-touch-icon.png",
+  "vendor/xlsx.full.min.js",
+  "vendor/qrcode.min.js",
+  "vendor/html5-qrcode.min.js"
 ];
 
 // Al instalar: guarda los archivos esenciales (uno por uno, sin romper si
